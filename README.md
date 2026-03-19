@@ -1,21 +1,11 @@
 # Portfolio - Midhun M
 
-My personal portfolio website showcasing projects, skills and background.
+My personal portfolio website.
 
 Live: https://portfolio-omega-eosin-56.vercel.app
 
-## About
-Personal portfolio built with pure HTML, CSS, and JavaScript.
-
-## Sections
-- Hero - Introduction
-- About - Background and education
-- Projects - Key personal and college projects
-- Skills - Tech stack
-- Contact
-
 ## Tech Stack
-HTML5, CSS3, JavaScript, Vercel (hosting)
+HTML5, CSS3, JavaScript, Vercel
 
 ## Run Locally
 ```bash
