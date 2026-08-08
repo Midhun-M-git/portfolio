@@ -320,8 +320,152 @@ h1, h2, h3, h4, .logo {
     transform: perspective(1000px) rotateX(0deg) translateY(0) scale(1);
 }
 
+/* ===================================================
+   MAGICAL SCROLL REVEAL SYSTEM
+   =================================================== */
+
+/* Base hidden state — ALL scroll-reveal elements start invisible */
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(48px) scale(0.97);
+    transition:
+        opacity   0.75s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+        filter    0.75s ease;
+    filter: blur(4px);
+    will-change: opacity, transform, filter;
+}
+
+/* Triggered state — slides up, snaps into place */
+.scroll-reveal.in-view {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+}
+
+/* Stagger delays for child elements */
+.scroll-reveal[data-delay="1"]  { transition-delay: 0.10s; }
+.scroll-reveal[data-delay="2"]  { transition-delay: 0.20s; }
+.scroll-reveal[data-delay="3"]  { transition-delay: 0.32s; }
+.scroll-reveal[data-delay="4"]  { transition-delay: 0.46s; }
+.scroll-reveal[data-delay="5"]  { transition-delay: 0.60s; }
+.scroll-reveal[data-delay="6"]  { transition-delay: 0.76s; }
+
+/* Alternate entrance variants */
+.scroll-reveal.from-left {
+    transform: translateX(-56px) scale(0.97);
+}
+.scroll-reveal.from-left.in-view {
+    transform: translateX(0) scale(1);
+}
+.scroll-reveal.from-right {
+    transform: translateX(56px) scale(0.97);
+}
+.scroll-reveal.from-right.in-view {
+    transform: translateX(0) scale(1);
+}
+.scroll-reveal.scale-in {
+    transform: scale(0.85);
+    filter: blur(6px);
+}
+.scroll-reveal.scale-in.in-view {
+    transform: scale(1);
+    filter: blur(0);
+}
+
+/* Stagger list children with .stagger-item class */
+.stagger-item {
+    opacity: 0;
+    transform: translateX(-20px);
+    transition:
+        opacity   0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    filter: blur(2px);
+}
+.stagger-item.in-view {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+}
+.stagger-item:nth-child(1) { transition-delay: 0.08s; }
+.stagger-item:nth-child(2) { transition-delay: 0.18s; }
+.stagger-item:nth-child(3) { transition-delay: 0.29s; }
+.stagger-item:nth-child(4) { transition-delay: 0.40s; }
+.stagger-item:nth-child(5) { transition-delay: 0.52s; }
+.stagger-item:nth-child(6) { transition-delay: 0.65s; }
+
+/* Section title — frost slide + glow on entry */
+.section-title.scroll-reveal {
+    transform: translateY(30px);
+    filter: blur(5px);
+}
+.section-title.scroll-reveal.in-view {
+    transform: translateY(0);
+    filter: blur(0);
+}
+
+/* Section transition divider — animated frost line between sections */
+.section-divider {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 1.5rem 0 0;
+    opacity: 0;
+    transform: scaleX(0.3);
+    transform-origin: left;
+    transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.section-divider.in-view {
+    opacity: 1;
+    transform: scaleX(1);
+}
+.section-divider::before,
+.section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+}
+.section-divider span {
+    color: var(--accent-cyan);
+    font-size: 1.1rem;
+    opacity: 0.7;
+    text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+}
+
+/* Section entrance — frost shimmer sweep that fires once on each section enter */
+.scroll-section {
+    position: relative;
+    overflow: hidden;
+}
+.scroll-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        105deg,
+        transparent 20%,
+        rgba(0, 242, 254, 0.04) 40%,
+        rgba(0, 242, 254, 0.09) 50%,
+        rgba(0, 242, 254, 0.04) 60%,
+        transparent 80%
+    );
+    pointer-events: none;
+    z-index: 0;
+    transition: left 0s;
+}
+.scroll-section.frost-sweep::after {
+    left: 160%;
+    transition: left 1.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
 /* --- Buttons --- */
 .btn {
+
     display: inline-flex;
     align-items: center;
     justify-content: center;

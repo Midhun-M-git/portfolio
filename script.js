@@ -423,8 +423,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 4. SCROLL REVEAL & GLASS CARDS ANIMATION
+    // 4. MAGICAL SCROLL REVEAL & SECTION TRANSITIONS
     // ==========================================
+
+    // Reveal scroll-reveal elements
     const revealElements = document.querySelectorAll('.scroll-reveal, .scroll-3d-card');
     const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -432,9 +434,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 entry.target.classList.add('in-view');
             }
         });
-    }, { threshold: 0.15 });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
     revealElements.forEach(el => revealObserver.observe(el));
+
+    // Stagger list items (e.g. interest-list, skill items)
+    const staggerItems = document.querySelectorAll('.stagger-item');
+    const staggerObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
+
+    staggerItems.forEach(el => staggerObserver.observe(el));
+
+    // Section dividers (frost lines between sections)
+    const dividerObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+            }
+        });
+    }, { threshold: 0.3 });
+
+    document.querySelectorAll('.section-divider').forEach(el => dividerObserver.observe(el));
+
+    // Frost shimmer sweep — fires once each time a section enters viewport
+    const sectionSweepObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const section = entry.target;
+                section.classList.remove('frost-sweep');
+                // Tiny reflow delay to re-trigger the CSS animation
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => section.classList.add('frost-sweep'));
+                });
+            }
+        });
+    }, { threshold: 0.18 });
+
+    document.querySelectorAll('.scroll-section, section').forEach(sec => sectionSweepObserver.observe(sec));
 
     // ==========================================
     // 5. TYPEWRITER EFFECT (MIDHUN'S EXACT ROLES)
