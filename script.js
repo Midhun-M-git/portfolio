@@ -203,11 +203,20 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebGL();
 
     // ==========================================
-    // 2. DYNAMIC SCROLL ENGINE & TRACKER
+    // 2. DYNAMIC SCROLL ENGINE, VIDEO & TRACKER
     // ==========================================
     const progressBar = document.getElementById('scroll-progress');
     const trackerItems = document.querySelectorAll('.tracker-item');
     const sections = document.querySelectorAll('.scroll-section, section');
+    const bgVideo = document.getElementById('bg-video');
+
+    // Ensure background video stays muted & playing
+    if (bgVideo) {
+        bgVideo.muted = true;
+        bgVideo.play().catch(err => {
+            console.log("Autoplay waiting for user interaction:", err);
+        });
+    }
 
     window.addEventListener('scroll', () => {
         const currentScrollY = window.scrollY;
@@ -216,6 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollPercent = Math.max(0, Math.min(1, currentScrollY / maxScroll));
         scrollVelocity = currentScrollY - lastScrollY;
         lastScrollY = currentScrollY;
+
+        // Dynamic Background Video Scroll Zoom & Parallax Physics
+        if (bgVideo) {
+            const scale = 1 + (scrollPercent * 0.12);
+            const translateY = scrollPercent * -20;
+            bgVideo.style.transform = `scale(${scale}) translateY(${translateY}px)`;
+        }
 
         // Top Scroll Progress Line
         if (progressBar) {
