@@ -49,19 +49,18 @@ body {
     cursor: default;
 }
 
-/* --- Dynamic Background Video & Overlay --- */
-.bg-video {
+/* --- Dynamic 102-Frame Scroll Canvas Background --- */
+.scroll-frame-canvas {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    object-fit: cover;
     z-index: -3;
     pointer-events: none;
-    opacity: 0.65;
-    filter: brightness(0.75) contrast(1.1);
-    transition: transform 0.1s linear;
+    opacity: 0.75;
+    filter: brightness(0.85) contrast(1.1);
+    transition: opacity 0.3s ease;
     will-change: transform;
 }
 
@@ -71,7 +70,7 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at center, rgba(4, 8, 20, 0.4) 0%, rgba(4, 8, 20, 0.85) 100%);
+    background: radial-gradient(circle at center, rgba(4, 8, 20, 0.45) 0%, rgba(4, 8, 20, 0.88) 100%);
     z-index: -2;
     pointer-events: none;
 }

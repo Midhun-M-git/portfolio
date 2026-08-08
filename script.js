@@ -203,20 +203,78 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebGL();
 
     // ==========================================
-    // 2. DYNAMIC SCROLL ENGINE, VIDEO & TRACKER
+    // 2. DYNAMIC 102-FRAME SCROLL CANVAS ENGINE (10-30 FPS)
     // ==========================================
+    const totalFrames = 102;
+    const frameImages = [];
+    let loadedFramesCount = 0;
+    let currentFrame = 0;
+    let targetFrame = 0;
+    let isUserScrolling = false;
+    let scrollTimeout = null;
+
+    const frameCanvas = document.getElementById('scroll-frame-canvas');
+    const ctx = frameCanvas ? frameCanvas.getContext('2d') : null;
+
+    // Preload 102 SVG Frames from extracted archive
+    for (let i = 0; i < totalFrames; i++) {
+        const img = new Image();
+        const paddedIndex = String(i).padStart(3, '0');
+        img.src = `assets/frames/no_need_the_kid_just_the_dynam_${paddedIndex}.svg`;
+        img.onload = () => {
+            loadedFramesCount++;
+            if (i === 0) drawFrame(0);
+        };
+        frameImages.push(img);
+    }
+
+    function drawFrame(frameIdx) {
+        if (!frameCanvas || !ctx) return;
+        const validIdx = Math.max(0, Math.min(totalFrames - 1, Math.floor(frameIdx)));
+        const img = frameImages[validIdx];
+
+        if (!img || !img.complete || img.naturalWidth === 0) return;
+
+        frameCanvas.width = window.innerWidth;
+        frameCanvas.height = window.innerHeight;
+
+        const hRatio = frameCanvas.width / img.naturalWidth;
+        const vRatio = frameCanvas.height / img.naturalHeight;
+        const ratio = Math.max(hRatio, vRatio);
+
+        const centerShift_x = (frameCanvas.width - img.naturalWidth * ratio) / 2;
+        const centerShift_y = (frameCanvas.height - img.naturalHeight * ratio) / 2;
+
+        ctx.clearRect(0, 0, frameCanvas.width, frameCanvas.height);
+        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight,
+                      centerShift_x, centerShift_y, img.naturalWidth * ratio, img.naturalHeight * ratio);
+    }
+
+    // Smooth Frame Animation Loop (10-30 FPS interpolation)
+    let lastFpsTime = performance.now();
+    const targetFpsInterval = 1000 / 24; // 24 FPS dynamic playback
+
+    function updateFrameLoop(now) {
+        requestAnimationFrame(updateFrameLoop);
+
+        // Smooth Lerp Scrubbing on Scroll
+        currentFrame += (targetFrame - currentFrame) * 0.18;
+
+        // Auto-play dynamic loop when user is idle (10-30 FPS)
+        if (!isUserScrolling && now - lastFpsTime > targetFpsInterval) {
+            targetFrame = (targetFrame + 0.5) % totalFrames;
+            lastFpsTime = now;
+        }
+
+        drawFrame(currentFrame);
+    }
+
+    requestAnimationFrame(updateFrameLoop);
+
+    // Window Scroll Handler for Frame Scrubbing
     const progressBar = document.getElementById('scroll-progress');
     const trackerItems = document.querySelectorAll('.tracker-item');
     const sections = document.querySelectorAll('.scroll-section, section');
-    const bgVideo = document.getElementById('bg-video');
-
-    // Ensure background video stays muted & playing
-    if (bgVideo) {
-        bgVideo.muted = true;
-        bgVideo.play().catch(err => {
-            console.log("Autoplay waiting for user interaction:", err);
-        });
-    }
 
     window.addEventListener('scroll', () => {
         const currentScrollY = window.scrollY;
@@ -226,12 +284,14 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollVelocity = currentScrollY - lastScrollY;
         lastScrollY = currentScrollY;
 
-        // Dynamic Background Video Scroll Zoom & Parallax Physics
-        if (bgVideo) {
-            const scale = 1 + (scrollPercent * 0.12);
-            const translateY = scrollPercent * -20;
-            bgVideo.style.transform = `scale(${scale}) translateY(${translateY}px)`;
-        }
+        // Map scroll percentage directly to frame sequence index (0 to 101)
+        targetFrame = scrollPercent * (totalFrames - 1);
+
+        isUserScrolling = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            isUserScrolling = false;
+        }, 150);
 
         // Top Scroll Progress Line
         if (progressBar) {
