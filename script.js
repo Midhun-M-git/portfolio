@@ -1,11 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
-    // 1. THREE.JS MAGICAL IGLOO 3D ENGINE & SHADERS
+    // 1. THREE.JS ENERGY WAVE & BOKEH LIGHTS (IMAGE 2 THEME)
     // ==========================================
-    let scene, camera, renderer;
-    let glassOrb, glassCrystal, cyberTorus, glassCube, particleSystem;
-    let pointLight1, pointLight2, spotLight;
+    let scene, camera, renderer, waveParticles, bokehGroup;
     let mouseX = 0, mouseY = 0;
     let targetX = 0, targetY = 0;
 
@@ -13,139 +11,102 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrollVelocity = 0;
     let scrollPercent = 0;
 
+    const originalPositions = [];
+    const waveSpeeds = [];
+
     function initWebGL() {
         const canvas = document.getElementById('webgl-canvas');
         if (!canvas || typeof THREE === 'undefined') return;
 
         scene = new THREE.Scene();
 
-        // Responsive Camera setup
-        const isMobile = window.innerWidth < 768;
-        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = isMobile ? 32 : 25;
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 25;
 
-        // Renderer setup with high precision shadows & tone mapping
         renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.25;
 
-        // --- MAGICAL LIGHTING SYSTEM ---
-        const ambientLight = new THREE.AmbientLight(0x0a0e1a, 2.0);
-        scene.add(ambientLight);
-
-        // Neon Cyan Point Light
-        pointLight1 = new THREE.PointLight(0x00f2fe, 4, 60);
-        pointLight1.position.set(15, 12, 10);
-        scene.add(pointLight1);
-
-        // Electric Violet Point Light
-        pointLight2 = new THREE.PointLight(0x8b5cf6, 4.5, 60);
-        pointLight2.position.set(-15, -12, 10);
-        scene.add(pointLight2);
-
-        // Specular Spotlight for Crystal Refraction Highlights
-        spotLight = new THREE.SpotLight(0xffffff, 2, 80, Math.PI / 4, 0.5);
-        spotLight.position.set(0, 20, 20);
-        scene.add(spotLight);
-
-        // --- IGLOO MAGICAL IRIDESCENT GLASS MATERIALS ---
-        const glassMatCyan = new THREE.MeshPhysicalMaterial({
-            color: 0x00f2fe,
-            metalness: 0.1,
-            roughness: 0.08,
-            transmission: 0.88,
-            ior: 1.5,
-            thickness: 1.4,
-            specularIntensity: 2.0,
-            specularColor: new THREE.Color(0x00f2fe),
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.1,
-            iridescence: 0.9,
-            iridescenceIOR: 1.3,
-            transparent: true,
-            opacity: 0.85
-        });
-
-        const glassMatViolet = new THREE.MeshPhysicalMaterial({
-            color: 0x8b5cf6,
-            metalness: 0.15,
-            roughness: 0.1,
-            transmission: 0.85,
-            ior: 1.55,
-            thickness: 1.5,
-            specularIntensity: 2.2,
-            specularColor: new THREE.Color(0xc084fc),
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.08,
-            iridescence: 1.0,
-            iridescenceIOR: 1.4,
-            transparent: true,
-            opacity: 0.85
-        });
-
-        // --- MAGICAL 3D FLOATING OBJECTS ---
-        
-        // 1. Floating Magical Liquid Glass Orb (Top Right Hero)
-        const orbGeo = new THREE.SphereGeometry(3.5, 64, 64);
-        glassOrb = new THREE.Mesh(orbGeo, glassMatCyan);
-        glassOrb.position.set(isMobile ? 0 : 16, isMobile ? 12 : 5, -2);
-        scene.add(glassOrb);
-
-        // 2. Iridescent Glass Diamond Crystal (Left Side About)
-        const crystalGeo = new THREE.OctahedronGeometry(3.2, 0);
-        glassCrystal = new THREE.Mesh(crystalGeo, glassMatViolet);
-        glassCrystal.position.set(isMobile ? -8 : -17, -5, 2);
-        scene.add(glassCrystal);
-
-        // 3. Glowing Cyber Torus Ring (Right Side Projects)
-        const torusGeo = new THREE.TorusGeometry(2.8, 0.7, 32, 64);
-        cyberTorus = new THREE.Mesh(torusGeo, glassMatCyan);
-        cyberTorus.position.set(isMobile ? 8 : 17, -15, -4);
-        scene.add(cyberTorus);
-
-        // 4. Floating Rounded Glass Cube (Left Side Skills)
-        const cubeGeo = new THREE.BoxGeometry(3, 3, 3);
-        glassCube = new THREE.Mesh(cubeGeo, glassMatViolet);
-        glassCube.position.set(isMobile ? -6 : -16, -26, -2);
-        scene.add(glassCube);
-
-        // --- MAGICAL AMBIENT STARFIELD / PARTICLES ---
-        const particleCount = isMobile ? 250 : 500;
+        // --- AMBER TO CYAN FLOWING WAVE PARTICLES ---
+        const particleCount = window.innerWidth < 768 ? 900 : 2200;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
 
-        const c1 = new THREE.Color(0x00f2fe);
-        const c2 = new THREE.Color(0x8b5cf6);
+        const colorAmber = new THREE.Color(0xff7700);
+        const colorOrange = new THREE.Color(0xffaa00);
+        const colorCyan = new THREE.Color(0x00f2fe);
+        const colorTeal = new THREE.Color(0x00d2ff);
 
         for (let i = 0; i < particleCount * 3; i += 3) {
-            positions[i] = (Math.random() - 0.5) * 120;
-            positions[i + 1] = (Math.random() - 0.5) * 120;
-            positions[i + 2] = (Math.random() - 0.5) * 90;
+            const x = (Math.random() - 0.5) * 130;
+            // Wave strand distribution along X
+            const normalizeX = (x + 65) / 130; // 0 to 1 from left to right
 
-            const col = Math.random() > 0.5 ? c1 : c2;
-            colors[i] = col.r;
-            colors[i + 1] = col.g;
-            colors[i + 2] = col.b;
+            const y = (Math.random() - 0.5) * 35;
+            const z = (Math.random() - 0.5) * 50;
+
+            positions[i] = x;
+            positions[i + 1] = y;
+            positions[i + 2] = z;
+
+            originalPositions.push({ x, y, z });
+            waveSpeeds.push(0.5 + Math.random() * 1.5);
+
+            // Interpolate color from Amber on left to Cyan on right (Image 2 style)
+            let particleColor;
+            if (normalizeX < 0.45) {
+                particleColor = colorAmber.clone().lerp(colorOrange, Math.random());
+            } else if (normalizeX > 0.55) {
+                particleColor = colorCyan.clone().lerp(colorTeal, Math.random());
+            } else {
+                particleColor = colorOrange.clone().lerp(colorCyan, (normalizeX - 0.45) / 0.1);
+            }
+
+            colors[i] = particleColor.r;
+            colors[i + 1] = particleColor.g;
+            colors[i + 2] = particleColor.b;
         }
 
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
         const particleMat = new THREE.PointsMaterial({
-            size: 0.25,
+            size: 0.35,
             vertexColors: true,
             transparent: true,
-            opacity: 0.5,
+            opacity: 0.75,
             blending: THREE.AdditiveBlending
         });
 
-        particleSystem = new THREE.Points(particleGeo, particleMat);
-        scene.add(particleSystem);
+        waveParticles = new THREE.Points(particleGeo, particleMat);
+        scene.add(waveParticles);
 
-        // --- ANIMATION, MAGNETIC MOUSE TILT & SCROLL ENGINE ---
+        // --- BOKEH LIGHT ORBS (IMAGE 2 BOKEH EFFECT) ---
+        bokehGroup = new THREE.Group();
+        const orbCount = 20;
+
+        for (let i = 0; i < orbCount; i++) {
+            const orbGeo = new THREE.SphereGeometry(0.8 + Math.random() * 1.5, 16, 16);
+            const isAmber = i < 10;
+            const orbMat = new THREE.MeshBasicMaterial({
+                color: isAmber ? 0xff7700 : 0x00f2fe,
+                transparent: true,
+                opacity: 0.15 + Math.random() * 0.25,
+                blending: THREE.AdditiveBlending
+            });
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            orb.position.set(
+                (Math.random() - 0.5) * 100,
+                (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 30
+            );
+            bokehGroup.add(orb);
+        }
+
+        scene.add(bokehGroup);
+
+        // --- ANIMATION & WAVE PHYSICS LOOP ---
         let clock = new THREE.Clock();
 
         const animate = () => {
@@ -155,61 +116,46 @@ document.addEventListener('DOMContentLoaded', () => {
             targetX += (mouseX - targetX) * 0.05;
             targetY += (mouseY - targetY) * 0.05;
 
-            // Magical Floating & Mouse Magnetic Physics
-            if (glassOrb) {
-                glassOrb.rotation.x = t * 0.4 + (targetY * 0.4);
-                glassOrb.rotation.y = t * 0.5 + (targetX * 0.4);
-                glassOrb.position.y = 5 + Math.sin(t * 1.5) * 0.8 + (scrollPercent * 6);
-                glassOrb.position.x = (isMobile ? 0 : 16) + (targetX * 2);
+            // Flowing Sine Wave Ribbon Math (Image 2 effect)
+            if (waveParticles) {
+                const posArr = waveParticles.geometry.attributes.position.array;
+
+                for (let i = 0; i < particleCount; i++) {
+                    const idx = i * 3;
+                    const orig = originalPositions[i];
+                    const speed = waveSpeeds[i];
+
+                    // Multi-frequency flowing sine waves
+                    const waveY = Math.sin(orig.x * 0.08 + t * speed * 1.2) * 4.5 +
+                                  Math.cos(orig.x * 0.04 + t * 0.8) * 2.5 +
+                                  Math.sin(t * 1.5 + orig.z * 0.1) * 1.5;
+
+                    posArr[idx + 1] = orig.y + waveY + (scrollPercent * 10);
+                    posArr[idx] = orig.x + Math.sin(t * 0.5 + orig.y) * 1.5 + (targetX * 3);
+                }
+
+                waveParticles.geometry.attributes.position.needsUpdate = true;
+                waveParticles.rotation.y = (targetX * 0.05);
             }
 
-            if (glassCrystal) {
-                glassCrystal.rotation.x = t * -0.3 + (targetY * 0.3);
-                glassCrystal.rotation.z = t * 0.4;
-                glassCrystal.position.y = -5 + Math.cos(t * 1.3) * 0.7 - (scrollPercent * 5);
-                glassCrystal.position.x = (isMobile ? -8 : -17) + (targetX * 2.5);
+            // Floating Bokeh Orbs Drift
+            if (bokehGroup) {
+                bokehGroup.children.forEach((orb, i) => {
+                    orb.position.y += Math.sin(t * 0.5 + i) * 0.03;
+                    orb.position.x += Math.cos(t * 0.3 + i) * 0.02;
+                });
             }
 
-            if (cyberTorus) {
-                cyberTorus.rotation.x = t * 0.5;
-                cyberTorus.rotation.y = t * 0.6 + (targetX * 0.5);
-                cyberTorus.position.y = -15 + Math.sin(t * 1.1) * 0.9 - (scrollPercent * 10);
-            }
-
-            if (glassCube) {
-                glassCube.rotation.x = t * 0.3;
-                glassCube.rotation.y = t * 0.4;
-                glassCube.position.y = -26 + Math.cos(t * 1.2) * 0.7 - (scrollPercent * 12);
-            }
-
-            // Orbit Lights
-            if (pointLight1) {
-                pointLight1.position.x = 15 + Math.sin(t * 1.2) * 5;
-                pointLight1.position.y = 12 + Math.cos(t * 0.9) * 5;
-            }
-
-            if (pointLight2) {
-                pointLight2.position.x = -15 + Math.cos(t * 1.1) * 5;
-                pointLight2.position.y = -12 + Math.sin(t * 0.8) * 5;
-            }
-
-            if (particleSystem) {
-                particleSystem.rotation.y = t * 0.03 + (scrollPercent * 0.6);
-            }
-
-            // Smooth Camera Zoom
-            camera.position.z = (isMobile ? 32 : 25) - (scrollPercent * 8);
+            camera.position.z = 25 - (scrollPercent * 5);
 
             renderer.render(scene, camera);
         };
 
         animate();
 
-        // Window Resize Responsiveness
+        // Window Resize
         window.addEventListener('resize', () => {
-            const mobile = window.innerWidth < 768;
             camera.aspect = window.innerWidth / window.innerHeight;
-            camera.position.z = mobile ? 32 : 25;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
@@ -384,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 6. INTERACTIVE CLI TERMINAL (AUTHENTIC DATA)
+    // 6. INTERACTIVE CLI TERMINAL (ROOT SHELL)
     // ==========================================
     const terminalDrawer = document.getElementById('terminal-drawer');
     const terminalToggle = document.getElementById('terminal-toggle');
@@ -455,7 +401,7 @@ Education: B.Tech in Computer Science Engineering @ Ahalia School of Engineering
 
                 const promptLine = document.createElement('div');
                 promptLine.className = 'terminal-line';
-                promptLine.innerHTML = `<span class="prompt-text">midhun@igloo:~$</span> ${escapeHtml(rawCmd)}`;
+                promptLine.innerHTML = `<span class="prompt-text">midhun@root:~$</span> ${escapeHtml(rawCmd)}`;
                 terminalOutput.appendChild(promptLine);
 
                 if (cmd === 'clear') {

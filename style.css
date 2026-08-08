@@ -126,29 +126,29 @@ body {
     box-shadow: 0 0 10px var(--accent-cyan);
 }
 
-/* --- Ambient Glows --- */
+/* --- Ambient Glows (Warm Amber Left to Cyan Right) --- */
 .glow {
     position: fixed;
-    width: 650px;
-    height: 650px;
+    width: 750px;
+    height: 750px;
     border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.12;
+    filter: blur(140px);
+    opacity: 0.22;
     z-index: -1;
     pointer-events: none;
     transition: transform 0.2s ease-out;
 }
 
 .glow-1 {
-    top: -15%;
-    left: -10%;
-    background: radial-gradient(circle, var(--accent-cyan) 0%, transparent 70%);
+    top: 20%;
+    left: -15%;
+    background: radial-gradient(circle, #ff7700 0%, #ff3300 40%, transparent 75%);
 }
 
 .glow-2 {
-    bottom: 10%;
-    right: -10%;
-    background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+    top: 30%;
+    right: -15%;
+    background: radial-gradient(circle, #00f2fe 0%, #38bdf8 40%, transparent 75%);
 }
 
 /* --- Custom Magnetic Cursor --- */
