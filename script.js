@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
-    // 1. THREE.JS IGLOO AMBIENT WEBGL PARTICLES
+    // 1. THREE.JS MAGICAL IGLOO 3D ENGINE & SHADERS
     // ==========================================
-    let scene, camera, renderer, particleSystem;
+    let scene, camera, renderer;
+    let glassOrb, glassCrystal, cyberTorus, glassCube, particleSystem;
+    let pointLight1, pointLight2, spotLight;
     let mouseX = 0, mouseY = 0;
     let targetX = 0, targetY = 0;
 
@@ -17,76 +19,197 @@ document.addEventListener('DOMContentLoaded', () => {
 
         scene = new THREE.Scene();
 
-        // Camera setup
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 30;
+        // Responsive Camera setup
+        const isMobile = window.innerWidth < 768;
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = isMobile ? 32 : 25;
 
-        // Renderer setup
+        // Renderer setup with high precision shadows & tone mapping
         renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.25;
 
-        // --- IGLOO AMBIENT PARTICLES (Subtle glowing particles field) ---
-        const particleCount = window.innerWidth < 768 ? 200 : 450;
+        // --- MAGICAL LIGHTING SYSTEM ---
+        const ambientLight = new THREE.AmbientLight(0x0a0e1a, 2.0);
+        scene.add(ambientLight);
+
+        // Neon Cyan Point Light
+        pointLight1 = new THREE.PointLight(0x00f2fe, 4, 60);
+        pointLight1.position.set(15, 12, 10);
+        scene.add(pointLight1);
+
+        // Electric Violet Point Light
+        pointLight2 = new THREE.PointLight(0x8b5cf6, 4.5, 60);
+        pointLight2.position.set(-15, -12, 10);
+        scene.add(pointLight2);
+
+        // Specular Spotlight for Crystal Refraction Highlights
+        spotLight = new THREE.SpotLight(0xffffff, 2, 80, Math.PI / 4, 0.5);
+        spotLight.position.set(0, 20, 20);
+        scene.add(spotLight);
+
+        // --- IGLOO MAGICAL IRIDESCENT GLASS MATERIALS ---
+        const glassMatCyan = new THREE.MeshPhysicalMaterial({
+            color: 0x00f2fe,
+            metalness: 0.1,
+            roughness: 0.08,
+            transmission: 0.88,
+            ior: 1.5,
+            thickness: 1.4,
+            specularIntensity: 2.0,
+            specularColor: new THREE.Color(0x00f2fe),
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.1,
+            iridescence: 0.9,
+            iridescenceIOR: 1.3,
+            transparent: true,
+            opacity: 0.85
+        });
+
+        const glassMatViolet = new THREE.MeshPhysicalMaterial({
+            color: 0x8b5cf6,
+            metalness: 0.15,
+            roughness: 0.1,
+            transmission: 0.85,
+            ior: 1.55,
+            thickness: 1.5,
+            specularIntensity: 2.2,
+            specularColor: new THREE.Color(0xc084fc),
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.08,
+            iridescence: 1.0,
+            iridescenceIOR: 1.4,
+            transparent: true,
+            opacity: 0.85
+        });
+
+        // --- MAGICAL 3D FLOATING OBJECTS ---
+        
+        // 1. Floating Magical Liquid Glass Orb (Top Right Hero)
+        const orbGeo = new THREE.SphereGeometry(3.5, 64, 64);
+        glassOrb = new THREE.Mesh(orbGeo, glassMatCyan);
+        glassOrb.position.set(isMobile ? 0 : 16, isMobile ? 12 : 5, -2);
+        scene.add(glassOrb);
+
+        // 2. Iridescent Glass Diamond Crystal (Left Side About)
+        const crystalGeo = new THREE.OctahedronGeometry(3.2, 0);
+        glassCrystal = new THREE.Mesh(crystalGeo, glassMatViolet);
+        glassCrystal.position.set(isMobile ? -8 : -17, -5, 2);
+        scene.add(glassCrystal);
+
+        // 3. Glowing Cyber Torus Ring (Right Side Projects)
+        const torusGeo = new THREE.TorusGeometry(2.8, 0.7, 32, 64);
+        cyberTorus = new THREE.Mesh(torusGeo, glassMatCyan);
+        cyberTorus.position.set(isMobile ? 8 : 17, -15, -4);
+        scene.add(cyberTorus);
+
+        // 4. Floating Rounded Glass Cube (Left Side Skills)
+        const cubeGeo = new THREE.BoxGeometry(3, 3, 3);
+        glassCube = new THREE.Mesh(cubeGeo, glassMatViolet);
+        glassCube.position.set(isMobile ? -6 : -16, -26, -2);
+        scene.add(glassCube);
+
+        // --- MAGICAL AMBIENT STARFIELD / PARTICLES ---
+        const particleCount = isMobile ? 250 : 500;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
 
-        const colorCyan = new THREE.Color(0x00f2fe);
-        const colorViolet = new THREE.Color(0x8b5cf6);
+        const c1 = new THREE.Color(0x00f2fe);
+        const c2 = new THREE.Color(0x8b5cf6);
 
         for (let i = 0; i < particleCount * 3; i += 3) {
-            positions[i] = (Math.random() - 0.5) * 110;
-            positions[i + 1] = (Math.random() - 0.5) * 110;
-            positions[i + 2] = (Math.random() - 0.5) * 80;
+            positions[i] = (Math.random() - 0.5) * 120;
+            positions[i + 1] = (Math.random() - 0.5) * 120;
+            positions[i + 2] = (Math.random() - 0.5) * 90;
 
-            const mixedColor = Math.random() > 0.5 ? colorCyan : colorViolet;
-            colors[i] = mixedColor.r;
-            colors[i + 1] = mixedColor.g;
-            colors[i + 2] = mixedColor.b;
+            const col = Math.random() > 0.5 ? c1 : c2;
+            colors[i] = col.r;
+            colors[i + 1] = col.g;
+            colors[i + 2] = col.b;
         }
 
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
         const particleMat = new THREE.PointsMaterial({
-            size: 0.22,
+            size: 0.25,
             vertexColors: true,
             transparent: true,
-            opacity: 0.45,
+            opacity: 0.5,
             blending: THREE.AdditiveBlending
         });
 
         particleSystem = new THREE.Points(particleGeo, particleMat);
         scene.add(particleSystem);
 
-        // --- ANIMATION & SCROLL RENDER LOOP ---
+        // --- ANIMATION, MAGNETIC MOUSE TILT & SCROLL ENGINE ---
         let clock = new THREE.Clock();
 
         const animate = () => {
             requestAnimationFrame(animate);
-            const elapsedTime = clock.getElapsedTime();
+            const t = clock.getElapsedTime();
 
-            targetX += (mouseX - targetX) * 0.04;
-            targetY += (mouseY - targetY) * 0.04;
+            targetX += (mouseX - targetX) * 0.05;
+            targetY += (mouseY - targetY) * 0.05;
 
-            // Gentle particle drift and scroll interaction
-            if (particleSystem) {
-                particleSystem.rotation.y = elapsedTime * 0.02 + (scrollPercent * 0.4) + (targetX * 0.1);
-                particleSystem.rotation.x = (scrollPercent * 0.2) + (targetY * 0.1);
+            // Magical Floating & Mouse Magnetic Physics
+            if (glassOrb) {
+                glassOrb.rotation.x = t * 0.4 + (targetY * 0.4);
+                glassOrb.rotation.y = t * 0.5 + (targetX * 0.4);
+                glassOrb.position.y = 5 + Math.sin(t * 1.5) * 0.8 + (scrollPercent * 6);
+                glassOrb.position.x = (isMobile ? 0 : 16) + (targetX * 2);
             }
 
-            // Smooth Camera Depth Move on Scroll
-            camera.position.z = 30 - (scrollPercent * 6);
+            if (glassCrystal) {
+                glassCrystal.rotation.x = t * -0.3 + (targetY * 0.3);
+                glassCrystal.rotation.z = t * 0.4;
+                glassCrystal.position.y = -5 + Math.cos(t * 1.3) * 0.7 - (scrollPercent * 5);
+                glassCrystal.position.x = (isMobile ? -8 : -17) + (targetX * 2.5);
+            }
+
+            if (cyberTorus) {
+                cyberTorus.rotation.x = t * 0.5;
+                cyberTorus.rotation.y = t * 0.6 + (targetX * 0.5);
+                cyberTorus.position.y = -15 + Math.sin(t * 1.1) * 0.9 - (scrollPercent * 10);
+            }
+
+            if (glassCube) {
+                glassCube.rotation.x = t * 0.3;
+                glassCube.rotation.y = t * 0.4;
+                glassCube.position.y = -26 + Math.cos(t * 1.2) * 0.7 - (scrollPercent * 12);
+            }
+
+            // Orbit Lights
+            if (pointLight1) {
+                pointLight1.position.x = 15 + Math.sin(t * 1.2) * 5;
+                pointLight1.position.y = 12 + Math.cos(t * 0.9) * 5;
+            }
+
+            if (pointLight2) {
+                pointLight2.position.x = -15 + Math.cos(t * 1.1) * 5;
+                pointLight2.position.y = -12 + Math.sin(t * 0.8) * 5;
+            }
+
+            if (particleSystem) {
+                particleSystem.rotation.y = t * 0.03 + (scrollPercent * 0.6);
+            }
+
+            // Smooth Camera Zoom
+            camera.position.z = (isMobile ? 32 : 25) - (scrollPercent * 8);
 
             renderer.render(scene, camera);
         };
 
         animate();
 
-        // Window Resize
+        // Window Resize Responsiveness
         window.addEventListener('resize', () => {
+            const mobile = window.innerWidth < 768;
             camera.aspect = window.innerWidth / window.innerHeight;
+            camera.position.z = mobile ? 32 : 25;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
@@ -361,6 +484,7 @@ Education: B.Tech in Computer Science Engineering @ Ahalia School of Engineering
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 });
+
 
 
 
