@@ -216,14 +216,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const frameCanvas = document.getElementById('scroll-frame-canvas');
     const ctx = frameCanvas ? frameCanvas.getContext('2d') : null;
 
-    // Preload 102 SVG Frames from extracted archive
+    // Preload 102 SVG Frames from extracted archive (GitHub Pages relative path compliant)
     for (let i = 0; i < totalFrames; i++) {
         const img = new Image();
         const paddedIndex = String(i).padStart(3, '0');
-        img.src = `assets/frames/no_need_the_kid_just_the_dynam_${paddedIndex}.svg`;
+        img.src = `./assets/frames/no_need_the_kid_just_the_dynam_${paddedIndex}.svg`;
         img.onload = () => {
             loadedFramesCount++;
-            if (i === 0) drawFrame(0);
+            if (i === 0 || loadedFramesCount === 1) drawFrame(0);
+        };
+        img.onerror = (e) => {
+            console.warn(`Frame ${paddedIndex} failed to load:`, e);
         };
         frameImages.push(img);
     }
