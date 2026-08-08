@@ -236,21 +236,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const validIdx = Math.max(0, Math.min(totalFrames - 1, Math.floor(frameIdx)));
         const img = frameImages[validIdx];
 
-        if (!img || !img.complete || img.naturalWidth === 0) return;
+        if (!img || !img.complete) return;
+
+        const imgWidth = img.naturalWidth || img.width || 1280;
+        const imgHeight = img.naturalHeight || img.height || 720;
 
         frameCanvas.width = window.innerWidth;
         frameCanvas.height = window.innerHeight;
 
-        const hRatio = frameCanvas.width / img.naturalWidth;
-        const vRatio = frameCanvas.height / img.naturalHeight;
+        const hRatio = frameCanvas.width / imgWidth;
+        const vRatio = frameCanvas.height / imgHeight;
         const ratio = Math.max(hRatio, vRatio);
 
-        const centerShift_x = (frameCanvas.width - img.naturalWidth * ratio) / 2;
-        const centerShift_y = (frameCanvas.height - img.naturalHeight * ratio) / 2;
+        const centerShift_x = (frameCanvas.width - imgWidth * ratio) / 2;
+        const centerShift_y = (frameCanvas.height - imgHeight * ratio) / 2;
 
         ctx.clearRect(0, 0, frameCanvas.width, frameCanvas.height);
-        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight,
-                      centerShift_x, centerShift_y, img.naturalWidth * ratio, img.naturalHeight * ratio);
+        ctx.drawImage(img, 0, 0, imgWidth, imgHeight,
+                      centerShift_x, centerShift_y, imgWidth * ratio, imgHeight * ratio);
     }
 
     // Smooth Frame Animation Loop (10-30 FPS interpolation)

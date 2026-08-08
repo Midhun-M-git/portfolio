@@ -56,10 +56,10 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: -3;
+    z-index: -1;
     pointer-events: none;
-    opacity: 0.75;
-    filter: brightness(0.85) contrast(1.1);
+    opacity: 0.88;
+    filter: invert(1) hue-rotate(170deg) brightness(1.8) drop-shadow(0 0 15px rgba(0, 242, 254, 0.7));
     transition: opacity 0.3s ease;
     will-change: transform;
 }
@@ -70,8 +70,8 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at center, rgba(4, 8, 20, 0.45) 0%, rgba(4, 8, 20, 0.88) 100%);
-    z-index: -2;
+    background: radial-gradient(circle at center, rgba(4, 8, 20, 0.35) 0%, rgba(4, 8, 20, 0.82) 100%);
+    z-index: -3;
     pointer-events: none;
 }
 
@@ -82,7 +82,7 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: -1;
+    z-index: -2;
     pointer-events: none;
     transition: transform 0.1s linear;
 }
