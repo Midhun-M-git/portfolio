@@ -256,21 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
                       centerShift_x, centerShift_y, imgWidth * ratio, imgHeight * ratio);
     }
 
-    // Smooth Frame Animation Loop (10-30 FPS interpolation)
-    let lastFpsTime = performance.now();
-    const targetFpsInterval = 1000 / 24; // 24 FPS dynamic playback
-
-    function updateFrameLoop(now) {
+    // Smooth Frame Animation Loop strictly bound to scroll position
+    function updateFrameLoop() {
         requestAnimationFrame(updateFrameLoop);
 
-        // Smooth Lerp Scrubbing on Scroll
+        // Smooth Lerp Scrubbing STRICTLY on Scroll
         currentFrame += (targetFrame - currentFrame) * 0.18;
-
-        // Auto-play dynamic loop when user is idle (10-30 FPS)
-        if (!isUserScrolling && now - lastFpsTime > targetFpsInterval) {
-            targetFrame = (targetFrame + 0.5) % totalFrames;
-            lastFpsTime = now;
-        }
 
         drawFrame(currentFrame);
     }
