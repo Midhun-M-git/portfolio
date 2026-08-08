@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
-    // 1. THREE.JS MAGICAL SNOWY ARCTIC ENGINE
+    // 1. THREE.JS MAGICAL SNOWY ARCTIC & INTERACTIVE PHYSICS
     // ==========================================
     let scene, camera, renderer;
-    let snowParticles, auroraMesh, frostCrystal1, frostCrystal2;
+    let snowParticles, frostCrystal1, frostCrystal2, sparkleSystem;
     let mouseX = 0, mouseY = 0;
     let targetX = 0, targetY = 0;
 
@@ -12,9 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrollVelocity = 0;
     let scrollPercent = 0;
 
-    const flakeCount = window.innerWidth < 768 ? 1200 : 2800;
+    const flakeCount = window.innerWidth < 768 ? 1200 : 2500;
     const flakePositions = new Float32Array(flakeCount * 3);
     const flakeVelocities = [];
+
+    // Interactive Sparkle Particles setup
+    const maxSparkles = 250;
+    const sparklePositions = new Float32Array(maxSparkles * 3);
+    const sparkleVelocities = [];
+    const sparkleLifes = new Float32Array(maxSparkles);
+    let sparkleIndex = 0;
 
     function initWebGL() {
         const canvas = document.getElementById('webgl-canvas');
@@ -91,20 +98,29 @@ document.addEventListener('DOMContentLoaded', () => {
         snowParticles = new THREE.Points(snowGeo, snowMat);
         scene.add(snowParticles);
 
-        // --- AURORA BOREALIS NORTHERN LIGHTS WAVE RIBBON ---
-        const auroraGeo = new THREE.PlaneGeometry(160, 40, 64, 16);
-        const auroraMat = new THREE.MeshBasicMaterial({
+        // --- MOUSE & TOUCH CURSOR SPARKLE BURST SYSTEM ---
+        const sparkleGeo = new THREE.BufferGeometry();
+
+        for (let i = 0; i < maxSparkles * 3; i += 3) {
+            sparklePositions[i] = 9999;
+            sparklePositions[i + 1] = 9999;
+            sparklePositions[i + 2] = 9999;
+            sparkleVelocities.push({ x: 0, y: 0, z: 0 });
+            sparkleLifes[i / 3] = 0;
+        }
+
+        sparkleGeo.setAttribute('position', new THREE.BufferAttribute(sparklePositions, 3));
+
+        const sparkleMat = new THREE.PointsMaterial({
             color: 0x00f2fe,
+            size: 0.45,
             transparent: true,
-            opacity: 0.14,
-            wireframe: true,
+            opacity: 0.9,
             blending: THREE.AdditiveBlending
         });
 
-        auroraMesh = new THREE.Mesh(auroraGeo, auroraMat);
-        auroraMesh.position.set(0, 18, -25);
-        auroraMesh.rotation.x = Math.PI / 4;
-        scene.add(auroraMesh);
+        sparkleSystem = new THREE.Points(sparkleGeo, sparkleMat);
+        scene.add(sparkleSystem);
 
         // --- FLOATING FROST CRYSTALS ---
         const crystalMat = new THREE.MeshPhysicalMaterial({
@@ -128,17 +144,21 @@ document.addEventListener('DOMContentLoaded', () => {
         frostCrystal2.position.set(-17, -8, 2);
         scene.add(frostCrystal2);
 
-        // --- ANIMATION, SNOWFALL & AURORA RENDER LOOP ---
+        // --- ANIMATION, SNOW REPELLENT & SPARKLE BURST RENDER LOOP ---
         let clock = new THREE.Clock();
 
         const animate = () => {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
 
-            targetX += (mouseX - targetX) * 0.04;
-            targetY += (mouseY - targetY) * 0.04;
+            targetX += (mouseX - targetX) * 0.05;
+            targetY += (mouseY - targetY) * 0.05;
 
-            // Endless Snowfall Physics Loop
+            // Mouse World coordinates for 3D Snow Repulsion
+            const mouseWorldX = targetX * 45;
+            const mouseWorldY = -targetY * 35;
+
+            // Endless Snowfall Physics with Mouse Magnetic Repulsion
             if (snowParticles) {
                 const posArr = snowParticles.geometry.attributes.position.array;
 
@@ -150,7 +170,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     posArr[idx + 1] -= vel.speedY + (scrollVelocity * 0.005);
 
                     // Sway X with Arctic Wind
-                    posArr[idx] += Math.sin(t * vel.swaySpeed + vel.offset) * vel.swayAmp + (targetX * 0.05);
+                    posArr[idx] += Math.sin(t * vel.swaySpeed + vel.offset) * vel.swayAmp;
+
+                    // Mouse / Touch Repulsion Physics (Push snow away from cursor!)
+                    const dx = posArr[idx] - mouseWorldX;
+                    const dy = posArr[idx + 1] - mouseWorldY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 16) {
+                        const force = (16 - dist) / 16;
+                        posArr[idx] += (dx / (dist || 1)) * force * 0.8;
+                        posArr[idx + 1] += (dy / (dist || 1)) * force * 0.8;
+                    }
 
                     // Reset to Sky when falling past bottom
                     if (posArr[idx + 1] < -60) {
@@ -162,14 +193,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 snowParticles.geometry.attributes.position.needsUpdate = true;
             }
 
-            // Aurora Borealis Wave Motion
-            if (auroraMesh) {
-                const pos = auroraMesh.geometry.attributes.position.array;
-                for (let i = 0; i < pos.length; i += 3) {
-                    const u = pos[i];
-                    pos[i + 2] = Math.sin(u * 0.08 + t * 0.8) * 4 + Math.cos(u * 0.04 + t * 0.6) * 2;
+            // Update Cursor Sparkle Bursts
+            if (sparkleSystem) {
+                const sPos = sparkleSystem.geometry.attributes.position.array;
+                for (let i = 0; i < maxSparkles; i++) {
+                    if (sparkleLifes[i] > 0) {
+                        const idx = i * 3;
+                        const v = sparkleVelocities[i];
+                        sPos[idx] += v.x;
+                        sPos[idx + 1] += v.y;
+                        sPos[idx + 2] += v.z;
+                        v.y -= 0.01; // gravity drop
+                        sparkleLifes[i] -= 0.02;
+
+                        if (sparkleLifes[i] <= 0) {
+                            sPos[idx] = 9999;
+                        }
+                    }
                 }
-                auroraMesh.geometry.attributes.position.needsUpdate = true;
+                sparkleSystem.geometry.attributes.position.needsUpdate = true;
             }
 
             // Rotate Frost Crystals
@@ -191,6 +233,33 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         animate();
+
+        // Spawn Sparkle Burst on Mouse Move / Touch / Click
+        function triggerSparkles(x, y, count = 5) {
+            const worldX = (x / window.innerWidth - 0.5) * 45;
+            const worldY = -(y / window.innerHeight - 0.5) * 35;
+
+            for (let k = 0; k < count; k++) {
+                const idx = sparkleIndex * 3;
+                sparklePositions[idx] = worldX + (Math.random() - 0.5) * 2;
+                sparklePositions[idx + 1] = worldY + (Math.random() - 0.5) * 2;
+                sparklePositions[idx + 2] = (Math.random() - 0.5) * 10;
+
+                sparkleVelocities[sparkleIndex] = {
+                    x: (Math.random() - 0.5) * 0.3,
+                    y: (Math.random() - 0.5) * 0.3 + 0.1,
+                    z: (Math.random() - 0.5) * 0.2
+                };
+                sparkleLifes[sparkleIndex] = 1.0;
+                sparkleIndex = (sparkleIndex + 1) % maxSparkles;
+            }
+        }
+
+        window.addEventListener('mousemove', (e) => triggerSparkles(e.clientX, e.clientY, 2));
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches[0]) triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 3);
+        });
+        window.addEventListener('click', (e) => triggerSparkles(e.clientX, e.clientY, 15));
 
         // Window Resize
         window.addEventListener('resize', () => {
