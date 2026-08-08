@@ -1,9 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
-    // 1. THREE.JS ENERGY WAVE & BOKEH LIGHTS (IMAGE 2 THEME)
+    // 1. THREE.JS MAGICAL SNOWY ARCTIC ENGINE
     // ==========================================
-    let scene, camera, renderer, waveParticles, bokehGroup;
+    let scene, camera, renderer;
+    let snowParticles, auroraMesh, frostCrystal1, frostCrystal2;
     let mouseX = 0, mouseY = 0;
     let targetX = 0, targetY = 0;
 
@@ -11,8 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrollVelocity = 0;
     let scrollPercent = 0;
 
-    const originalPositions = [];
-    const waveSpeeds = [];
+    const flakeCount = window.innerWidth < 768 ? 1200 : 2800;
+    const flakePositions = new Float32Array(flakeCount * 3);
+    const flakeVelocities = [];
 
     function initWebGL() {
         const canvas = document.getElementById('webgl-canvas');
@@ -27,126 +29,163 @@ document.addEventListener('DOMContentLoaded', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // --- AMBER TO CYAN FLOWING WAVE PARTICLES ---
-        const particleCount = window.innerWidth < 768 ? 900 : 2200;
-        const particleGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const colors = new Float32Array(particleCount * 3);
+        // --- ARCTIC LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x0f172a, 2.5);
+        scene.add(ambientLight);
 
-        const colorAmber = new THREE.Color(0xff7700);
-        const colorOrange = new THREE.Color(0xffaa00);
-        const colorCyan = new THREE.Color(0x00f2fe);
-        const colorTeal = new THREE.Color(0x00d2ff);
+        // Northern Lights Cyan Light
+        const cyanLight = new THREE.PointLight(0x00f2fe, 4, 70);
+        cyanLight.position.set(15, 20, 10);
+        scene.add(cyanLight);
 
-        for (let i = 0; i < particleCount * 3; i += 3) {
-            const x = (Math.random() - 0.5) * 130;
-            // Wave strand distribution along X
-            const normalizeX = (x + 65) / 130; // 0 to 1 from left to right
+        // Aurora Emerald Light
+        const emeraldLight = new THREE.PointLight(0x00ffcc, 3.5, 70);
+        emeraldLight.position.set(-15, 15, 10);
+        scene.add(emeraldLight);
 
-            const y = (Math.random() - 0.5) * 35;
-            const z = (Math.random() - 0.5) * 50;
+        // --- ENDLESS MAGICAL SNOWFALL PARTICLES ---
+        const snowGeo = new THREE.BufferGeometry();
+        const colors = new Float32Array(flakeCount * 3);
 
-            positions[i] = x;
-            positions[i + 1] = y;
-            positions[i + 2] = z;
+        const colorPureWhite = new THREE.Color(0xffffff);
+        const colorIceCyan = new THREE.Color(0xe0f7fa);
+        const colorSoftBlue = new THREE.Color(0xbae6fd);
 
-            originalPositions.push({ x, y, z });
-            waveSpeeds.push(0.5 + Math.random() * 1.5);
+        for (let i = 0; i < flakeCount * 3; i += 3) {
+            const x = (Math.random() - 0.5) * 140;
+            const y = (Math.random() - 0.5) * 120;
+            const z = (Math.random() - 0.5) * 90;
 
-            // Interpolate color from Amber on left to Cyan on right (Image 2 style)
-            let particleColor;
-            if (normalizeX < 0.45) {
-                particleColor = colorAmber.clone().lerp(colorOrange, Math.random());
-            } else if (normalizeX > 0.55) {
-                particleColor = colorCyan.clone().lerp(colorTeal, Math.random());
-            } else {
-                particleColor = colorOrange.clone().lerp(colorCyan, (normalizeX - 0.45) / 0.1);
-            }
+            flakePositions[i] = x;
+            flakePositions[i + 1] = y;
+            flakePositions[i + 2] = z;
 
-            colors[i] = particleColor.r;
-            colors[i + 1] = particleColor.g;
-            colors[i + 2] = particleColor.b;
+            flakeVelocities.push({
+                speedY: 0.08 + Math.random() * 0.18,
+                swaySpeed: 0.8 + Math.random() * 1.5,
+                swayAmp: 0.05 + Math.random() * 0.12,
+                offset: Math.random() * Math.PI * 2
+            });
+
+            const randCol = Math.random();
+            let col = colorPureWhite;
+            if (randCol > 0.6) col = colorIceCyan;
+            else if (randCol > 0.85) col = colorSoftBlue;
+
+            colors[i] = col.r;
+            colors[i + 1] = col.g;
+            colors[i + 2] = col.b;
         }
 
-        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        snowGeo.setAttribute('position', new THREE.BufferAttribute(flakePositions, 3));
+        snowGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        const particleMat = new THREE.PointsMaterial({
-            size: 0.35,
+        const snowMat = new THREE.PointsMaterial({
+            size: 0.38,
             vertexColors: true,
             transparent: true,
-            opacity: 0.75,
+            opacity: 0.82,
             blending: THREE.AdditiveBlending
         });
 
-        waveParticles = new THREE.Points(particleGeo, particleMat);
-        scene.add(waveParticles);
+        snowParticles = new THREE.Points(snowGeo, snowMat);
+        scene.add(snowParticles);
 
-        // --- BOKEH LIGHT ORBS (IMAGE 2 BOKEH EFFECT) ---
-        bokehGroup = new THREE.Group();
-        const orbCount = 20;
+        // --- AURORA BOREALIS NORTHERN LIGHTS WAVE RIBBON ---
+        const auroraGeo = new THREE.PlaneGeometry(160, 40, 64, 16);
+        const auroraMat = new THREE.MeshBasicMaterial({
+            color: 0x00f2fe,
+            transparent: true,
+            opacity: 0.14,
+            wireframe: true,
+            blending: THREE.AdditiveBlending
+        });
 
-        for (let i = 0; i < orbCount; i++) {
-            const orbGeo = new THREE.SphereGeometry(0.8 + Math.random() * 1.5, 16, 16);
-            const isAmber = i < 10;
-            const orbMat = new THREE.MeshBasicMaterial({
-                color: isAmber ? 0xff7700 : 0x00f2fe,
-                transparent: true,
-                opacity: 0.15 + Math.random() * 0.25,
-                blending: THREE.AdditiveBlending
-            });
-            const orb = new THREE.Mesh(orbGeo, orbMat);
-            orb.position.set(
-                (Math.random() - 0.5) * 100,
-                (Math.random() - 0.5) * 40,
-                (Math.random() - 0.5) * 30
-            );
-            bokehGroup.add(orb);
-        }
+        auroraMesh = new THREE.Mesh(auroraGeo, auroraMat);
+        auroraMesh.position.set(0, 18, -25);
+        auroraMesh.rotation.x = Math.PI / 4;
+        scene.add(auroraMesh);
 
-        scene.add(bokehGroup);
+        // --- FLOATING FROST CRYSTALS ---
+        const crystalMat = new THREE.MeshPhysicalMaterial({
+            color: 0xe0f7fa,
+            transmission: 0.9,
+            ior: 1.5,
+            roughness: 0.05,
+            specularIntensity: 2.5,
+            transparent: true,
+            opacity: 0.8,
+            flatShading: true
+        });
 
-        // --- ANIMATION & WAVE PHYSICS LOOP ---
+        const geo1 = new THREE.OctahedronGeometry(3.5, 0);
+        frostCrystal1 = new THREE.Mesh(geo1, crystalMat);
+        frostCrystal1.position.set(17, 6, -2);
+        scene.add(frostCrystal1);
+
+        const geo2 = new THREE.IcosahedronGeometry(3, 0);
+        frostCrystal2 = new THREE.Mesh(geo2, crystalMat);
+        frostCrystal2.position.set(-17, -8, 2);
+        scene.add(frostCrystal2);
+
+        // --- ANIMATION, SNOWFALL & AURORA RENDER LOOP ---
         let clock = new THREE.Clock();
 
         const animate = () => {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
 
-            targetX += (mouseX - targetX) * 0.05;
-            targetY += (mouseY - targetY) * 0.05;
+            targetX += (mouseX - targetX) * 0.04;
+            targetY += (mouseY - targetY) * 0.04;
 
-            // Flowing Sine Wave Ribbon Math (Image 2 effect)
-            if (waveParticles) {
-                const posArr = waveParticles.geometry.attributes.position.array;
+            // Endless Snowfall Physics Loop
+            if (snowParticles) {
+                const posArr = snowParticles.geometry.attributes.position.array;
 
-                for (let i = 0; i < particleCount; i++) {
+                for (let i = 0; i < flakeCount; i++) {
                     const idx = i * 3;
-                    const orig = originalPositions[i];
-                    const speed = waveSpeeds[i];
+                    const vel = flakeVelocities[i];
 
-                    // Multi-frequency flowing sine waves
-                    const waveY = Math.sin(orig.x * 0.08 + t * speed * 1.2) * 4.5 +
-                                  Math.cos(orig.x * 0.04 + t * 0.8) * 2.5 +
-                                  Math.sin(t * 1.5 + orig.z * 0.1) * 1.5;
+                    // Fall Y
+                    posArr[idx + 1] -= vel.speedY + (scrollVelocity * 0.005);
 
-                    posArr[idx + 1] = orig.y + waveY + (scrollPercent * 10);
-                    posArr[idx] = orig.x + Math.sin(t * 0.5 + orig.y) * 1.5 + (targetX * 3);
+                    // Sway X with Arctic Wind
+                    posArr[idx] += Math.sin(t * vel.swaySpeed + vel.offset) * vel.swayAmp + (targetX * 0.05);
+
+                    // Reset to Sky when falling past bottom
+                    if (posArr[idx + 1] < -60) {
+                        posArr[idx + 1] = 60;
+                        posArr[idx] = (Math.random() - 0.5) * 140;
+                    }
                 }
 
-                waveParticles.geometry.attributes.position.needsUpdate = true;
-                waveParticles.rotation.y = (targetX * 0.05);
+                snowParticles.geometry.attributes.position.needsUpdate = true;
             }
 
-            // Floating Bokeh Orbs Drift
-            if (bokehGroup) {
-                bokehGroup.children.forEach((orb, i) => {
-                    orb.position.y += Math.sin(t * 0.5 + i) * 0.03;
-                    orb.position.x += Math.cos(t * 0.3 + i) * 0.02;
-                });
+            // Aurora Borealis Wave Motion
+            if (auroraMesh) {
+                const pos = auroraMesh.geometry.attributes.position.array;
+                for (let i = 0; i < pos.length; i += 3) {
+                    const u = pos[i];
+                    pos[i + 2] = Math.sin(u * 0.08 + t * 0.8) * 4 + Math.cos(u * 0.04 + t * 0.6) * 2;
+                }
+                auroraMesh.geometry.attributes.position.needsUpdate = true;
             }
 
-            camera.position.z = 25 - (scrollPercent * 5);
+            // Rotate Frost Crystals
+            if (frostCrystal1) {
+                frostCrystal1.rotation.x = t * 0.3;
+                frostCrystal1.rotation.y = t * 0.4;
+                frostCrystal1.position.y = 6 + Math.sin(t * 1.2) * 0.6 + (scrollPercent * 6);
+            }
+
+            if (frostCrystal2) {
+                frostCrystal2.rotation.x = t * -0.25;
+                frostCrystal2.rotation.z = t * 0.35;
+                frostCrystal2.position.y = -8 + Math.cos(t * 1.4) * 0.6 - (scrollPercent * 6);
+            }
+
+            camera.position.z = 25 - (scrollPercent * 6);
 
             renderer.render(scene, camera);
         };
@@ -430,6 +469,7 @@ Education: B.Tech in Computer Science Engineering @ Ahalia School of Engineering
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 });
+
 
 
 

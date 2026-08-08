@@ -40,7 +40,7 @@ html {
 }
 
 body {
-    background-color: var(--bg-dark);
+    background-color: #040814;
     color: var(--text-primary);
     font-family: var(--font-body);
     line-height: 1.6;
@@ -49,7 +49,7 @@ body {
     cursor: default;
 }
 
-/* --- 3D WebGL Canvas (Scroll Synced) --- */
+/* --- 3D WebGL Canvas (Arctic Canvas) --- */
 #webgl-canvas {
     position: fixed;
     top: 0;
@@ -68,8 +68,8 @@ body {
     left: 0;
     height: 3px;
     width: 0%;
-    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet), var(--accent-pink));
-    box-shadow: 0 0 15px var(--accent-cyan);
+    background: linear-gradient(90deg, #00f2fe, #38bdf8, #a855f7);
+    box-shadow: 0 0 15px #00f2fe;
     z-index: 99999;
     transition: width 0.1s linear;
 }
@@ -126,29 +126,29 @@ body {
     box-shadow: 0 0 10px var(--accent-cyan);
 }
 
-/* --- Ambient Glows (Warm Amber Left to Cyan Right) --- */
+/* --- Ambient Arctic Glows (Northern Lights Aurora) --- */
 .glow {
     position: fixed;
-    width: 750px;
-    height: 750px;
+    width: 800px;
+    height: 800px;
     border-radius: 50%;
-    filter: blur(140px);
-    opacity: 0.22;
+    filter: blur(150px);
+    opacity: 0.18;
     z-index: -1;
     pointer-events: none;
     transition: transform 0.2s ease-out;
 }
 
 .glow-1 {
-    top: 20%;
+    top: -10%;
     left: -15%;
-    background: radial-gradient(circle, #ff7700 0%, #ff3300 40%, transparent 75%);
+    background: radial-gradient(circle, #00f2fe 0%, #00ffcc 35%, transparent 75%);
 }
 
 .glow-2 {
-    top: 30%;
+    bottom: -10%;
     right: -15%;
-    background: radial-gradient(circle, #00f2fe 0%, #38bdf8 40%, transparent 75%);
+    background: radial-gradient(circle, #6366f1 0%, #8b5cf6 40%, transparent 75%);
 }
 
 /* --- Custom Magnetic Cursor --- */
