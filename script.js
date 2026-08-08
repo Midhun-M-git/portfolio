@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const flakeVelocities = [];
 
     // Interactive Sparkle Particles setup
-    const maxSparkles = 250;
+    const maxSparkles = 350;
     const sparklePositions = new Float32Array(maxSparkles * 3);
     const sparkleVelocities = [];
     const sparkleLifes = new Float32Array(maxSparkles);
@@ -40,12 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const ambientLight = new THREE.AmbientLight(0x0f172a, 2.5);
         scene.add(ambientLight);
 
-        // Northern Lights Cyan Light
         const cyanLight = new THREE.PointLight(0x00f2fe, 4, 70);
         cyanLight.position.set(15, 20, 10);
         scene.add(cyanLight);
 
-        // Aurora Emerald Light
         const emeraldLight = new THREE.PointLight(0x00ffcc, 3.5, 70);
         emeraldLight.position.set(-15, 15, 10);
         scene.add(emeraldLight);
@@ -55,97 +53,73 @@ document.addEventListener('DOMContentLoaded', () => {
         const colors = new Float32Array(flakeCount * 3);
 
         const colorPureWhite = new THREE.Color(0xffffff);
-        const colorIceCyan = new THREE.Color(0xe0f7fa);
-        const colorSoftBlue = new THREE.Color(0xbae6fd);
+        const colorIceCyan   = new THREE.Color(0xe0f7fa);
+        const colorSoftBlue  = new THREE.Color(0xbae6fd);
 
         for (let i = 0; i < flakeCount * 3; i += 3) {
-            const x = (Math.random() - 0.5) * 140;
-            const y = (Math.random() - 0.5) * 120;
-            const z = (Math.random() - 0.5) * 90;
-
-            flakePositions[i] = x;
-            flakePositions[i + 1] = y;
-            flakePositions[i + 2] = z;
+            flakePositions[i]     = (Math.random() - 0.5) * 140;
+            flakePositions[i + 1] = (Math.random() - 0.5) * 120;
+            flakePositions[i + 2] = (Math.random() - 0.5) * 90;
 
             flakeVelocities.push({
-                speedY: 0.08 + Math.random() * 0.18,
-                swaySpeed: 0.8 + Math.random() * 1.5,
-                swayAmp: 0.05 + Math.random() * 0.12,
-                offset: Math.random() * Math.PI * 2
+                speedY:    0.06 + Math.random() * 0.16,
+                swaySpeed: 0.8  + Math.random() * 1.5,
+                swayAmp:   0.05 + Math.random() * 0.12,
+                offset:    Math.random() * Math.PI * 2,
+                vx: 0, vy: 0
             });
 
-            const randCol = Math.random();
-            let col = colorPureWhite;
-            if (randCol > 0.6) col = colorIceCyan;
-            else if (randCol > 0.85) col = colorSoftBlue;
-
-            colors[i] = col.r;
-            colors[i + 1] = col.g;
-            colors[i + 2] = col.b;
+            const r = Math.random();
+            const col = r > 0.75 ? colorSoftBlue : r > 0.4 ? colorIceCyan : colorPureWhite;
+            colors[i] = col.r; colors[i+1] = col.g; colors[i+2] = col.b;
         }
 
         snowGeo.setAttribute('position', new THREE.BufferAttribute(flakePositions, 3));
-        snowGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        snowGeo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
 
-        const snowMat = new THREE.PointsMaterial({
-            size: 0.38,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.82,
-            blending: THREE.AdditiveBlending
-        });
-
-        snowParticles = new THREE.Points(snowGeo, snowMat);
+        snowParticles = new THREE.Points(snowGeo, new THREE.PointsMaterial({
+            size: 0.42, vertexColors: true, transparent: true,
+            opacity: 0.88, blending: THREE.AdditiveBlending
+        }));
         scene.add(snowParticles);
 
-        // --- MOUSE & TOUCH CURSOR SPARKLE BURST SYSTEM ---
-        const sparkleGeo = new THREE.BufferGeometry();
+        // --- MULTI-COLOR CURSOR SPARKLE SYSTEM ---
+        const sparkleGeo    = new THREE.BufferGeometry();
+        const sparkleColors = new Float32Array(maxSparkles * 3);
 
         for (let i = 0; i < maxSparkles * 3; i += 3) {
-            sparklePositions[i] = 9999;
-            sparklePositions[i + 1] = 9999;
-            sparklePositions[i + 2] = 9999;
+            sparklePositions[i] = 9999; sparklePositions[i+1] = 9999; sparklePositions[i+2] = 9999;
             sparkleVelocities.push({ x: 0, y: 0, z: 0 });
             sparkleLifes[i / 3] = 0;
+            sparkleColors[i] = 1; sparkleColors[i+1] = 1; sparkleColors[i+2] = 1;
         }
 
         sparkleGeo.setAttribute('position', new THREE.BufferAttribute(sparklePositions, 3));
+        sparkleGeo.setAttribute('color',    new THREE.BufferAttribute(sparkleColors,    3));
 
-        const sparkleMat = new THREE.PointsMaterial({
-            color: 0x00f2fe,
-            size: 0.45,
-            transparent: true,
-            opacity: 0.9,
-            blending: THREE.AdditiveBlending
-        });
-
-        sparkleSystem = new THREE.Points(sparkleGeo, sparkleMat);
+        sparkleSystem = new THREE.Points(sparkleGeo, new THREE.PointsMaterial({
+            size: 1.1, vertexColors: true, transparent: true,
+            opacity: 1.0, blending: THREE.AdditiveBlending
+        }));
         scene.add(sparkleSystem);
 
         // --- FLOATING FROST CRYSTALS ---
         const crystalMat = new THREE.MeshPhysicalMaterial({
-            color: 0xe0f7fa,
-            transmission: 0.9,
-            ior: 1.5,
-            roughness: 0.05,
-            specularIntensity: 2.5,
-            transparent: true,
-            opacity: 0.8,
-            flatShading: true
+            color: 0xe0f7fa, transmission: 0.9, ior: 1.5,
+            roughness: 0.05, specularIntensity: 2.5,
+            transparent: true, opacity: 0.8, flatShading: true
         });
 
-        const geo1 = new THREE.OctahedronGeometry(3.5, 0);
-        frostCrystal1 = new THREE.Mesh(geo1, crystalMat);
+        frostCrystal1 = new THREE.Mesh(new THREE.OctahedronGeometry(3.5, 0), crystalMat);
         frostCrystal1.position.set(17, 6, -2);
         scene.add(frostCrystal1);
 
-        const geo2 = new THREE.IcosahedronGeometry(3, 0);
-        frostCrystal2 = new THREE.Mesh(geo2, crystalMat);
+        frostCrystal2 = new THREE.Mesh(new THREE.IcosahedronGeometry(3, 0), crystalMat);
         frostCrystal2.position.set(-17, -8, 2);
         scene.add(frostCrystal2);
 
-        // --- ANIMATION, SNOW REPELLENT & SPARKLE BURST RENDER LOOP ---
-        let clock = new THREE.Clock();
+        // --- ANIMATION LOOP ---
+        const clock = new THREE.Clock();
 
         const animate = () => {
             requestAnimationFrame(animate);
