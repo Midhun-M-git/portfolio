@@ -1,11 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
-    // 1. THREE.JS 3D IGLOO GLASS CRYSTALS ENGINE
+    // 1. THREE.JS IGLOO AMBIENT WEBGL PARTICLES
     // ==========================================
-    let scene, camera, renderer;
-    let gemTopRight, gemBottomLeft, gemCenterRight, particleSystem;
-    let pointLight1, pointLight2;
+    let scene, camera, renderer, particleSystem;
     let mouseX = 0, mouseY = 0;
     let targetX = 0, targetY = 0;
 
@@ -20,92 +18,42 @@ document.addEventListener('DOMContentLoaded', () => {
         scene = new THREE.Scene();
 
         // Camera setup
-        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 26;
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
 
         // Renderer setup
         renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // --- IGLOO LIGHTING SYSTEM ---
-        const ambientLight = new THREE.AmbientLight(0x0f172a, 1.5);
-        scene.add(ambientLight);
-
-        // Neon Cyan Specular Point Light
-        pointLight1 = new THREE.PointLight(0x00f2fe, 3, 50);
-        pointLight1.position.set(12, 10, 10);
-        scene.add(pointLight1);
-
-        // Electric Purple Specular Point Light
-        pointLight2 = new THREE.PointLight(0x8b5cf6, 3.5, 50);
-        pointLight2.position.set(-12, -10, 10);
-        scene.add(pointLight2);
-
-        // Directional Highlight Light
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(0, 15, 15);
-        scene.add(dirLight);
-
-        // --- IGLOO DYNAMIC 3D GLASS CRYSTAL GEOMETRIES ---
-        
-        // Material: Shiny Frosted Glass / Refractive Metallic Mesh
-        const glassMaterialCyan = new THREE.MeshPhongMaterial({
-            color: 0x06182c,
-            emissive: 0x004455,
-            specular: 0x00f2fe,
-            shininess: 100,
-            transparent: true,
-            opacity: 0.85,
-            flatShading: true
-        });
-
-        const glassMaterialPurple = new THREE.MeshPhongMaterial({
-            color: 0x1a0a2a,
-            emissive: 0x2e0854,
-            specular: 0x8b5cf6,
-            shininess: 90,
-            transparent: true,
-            opacity: 0.85,
-            flatShading: true
-        });
-
-        // Crystal 1: Top-Right Floating Icosahedron Gem
-        const geo1 = new THREE.IcosahedronGeometry(4.5, 0);
-        gemTopRight = new THREE.Mesh(geo1, glassMaterialCyan);
-        gemTopRight.position.set(15, 7, -2);
-        scene.add(gemTopRight);
-
-        // Crystal 2: Bottom-Left Floating Octahedron Prism
-        const geo2 = new THREE.OctahedronGeometry(3.8, 0);
-        gemBottomLeft = new THREE.Mesh(geo2, glassMaterialPurple);
-        gemBottomLeft.position.set(-16, -6, 2);
-        scene.add(gemBottomLeft);
-
-        // Crystal 3: Center-Right TorusKnot Crystal Ring
-        const geo3 = new THREE.TorusKnotGeometry(2.8, 0.8, 64, 16);
-        gemCenterRight = new THREE.Mesh(geo3, glassMaterialCyan);
-        gemCenterRight.position.set(16, -10, -5);
-        scene.add(gemCenterRight);
-
-        // Particle Galaxy Field (Soft ambient specks)
+        // --- IGLOO AMBIENT PARTICLES (Subtle glowing particles field) ---
         const particleCount = window.innerWidth < 768 ? 200 : 450;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+
+        const colorCyan = new THREE.Color(0x00f2fe);
+        const colorViolet = new THREE.Color(0x8b5cf6);
 
         for (let i = 0; i < particleCount * 3; i += 3) {
-            positions[i] = (Math.random() - 0.5) * 100;
-            positions[i + 1] = (Math.random() - 0.5) * 100;
+            positions[i] = (Math.random() - 0.5) * 110;
+            positions[i + 1] = (Math.random() - 0.5) * 110;
             positions[i + 2] = (Math.random() - 0.5) * 80;
+
+            const mixedColor = Math.random() > 0.5 ? colorCyan : colorViolet;
+            colors[i] = mixedColor.r;
+            colors[i + 1] = mixedColor.g;
+            colors[i + 2] = mixedColor.b;
         }
 
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
         const particleMat = new THREE.PointsMaterial({
-            color: 0x38bdf8,
-            size: 0.2,
+            size: 0.22,
+            vertexColors: true,
             transparent: true,
-            opacity: 0.4,
+            opacity: 0.45,
             blending: THREE.AdditiveBlending
         });
 
@@ -119,45 +67,17 @@ document.addEventListener('DOMContentLoaded', () => {
             requestAnimationFrame(animate);
             const elapsedTime = clock.getElapsedTime();
 
-            targetX += (mouseX - targetX) * 0.05;
-            targetY += (mouseY - targetY) * 0.05;
+            targetX += (mouseX - targetX) * 0.04;
+            targetY += (mouseY - targetY) * 0.04;
 
-            // Float 3D Crystals gracefully in space
-            if (gemTopRight) {
-                gemTopRight.rotation.x = elapsedTime * 0.3 + (targetY * 0.3);
-                gemTopRight.rotation.y = elapsedTime * 0.4 + (targetX * 0.3);
-                gemTopRight.position.y = 7 + Math.sin(elapsedTime * 1.2) * 0.8 + (scrollPercent * 8);
-            }
-
-            if (gemBottomLeft) {
-                gemBottomLeft.rotation.x = elapsedTime * -0.25;
-                gemBottomLeft.rotation.z = elapsedTime * 0.35;
-                gemBottomLeft.position.y = -6 + Math.cos(elapsedTime * 1.4) * 0.7 - (scrollPercent * 6);
-            }
-
-            if (gemCenterRight) {
-                gemCenterRight.rotation.x = elapsedTime * 0.4;
-                gemCenterRight.rotation.y = elapsedTime * 0.5;
-                gemCenterRight.position.y = -10 + Math.sin(elapsedTime * 0.9) * 0.6 - (scrollPercent * 12);
-            }
-
-            // Light Orbit
-            if (pointLight1) {
-                pointLight1.position.x = 12 + Math.sin(elapsedTime) * 4;
-                pointLight1.position.y = 10 + Math.cos(elapsedTime * 0.8) * 4;
-            }
-
-            if (pointLight2) {
-                pointLight2.position.x = -12 + Math.cos(elapsedTime * 1.1) * 4;
-                pointLight2.position.y = -10 + Math.sin(elapsedTime * 0.7) * 4;
-            }
-
+            // Gentle particle drift and scroll interaction
             if (particleSystem) {
-                particleSystem.rotation.y = elapsedTime * 0.03 + (scrollPercent * 0.5);
+                particleSystem.rotation.y = elapsedTime * 0.02 + (scrollPercent * 0.4) + (targetX * 0.1);
+                particleSystem.rotation.x = (scrollPercent * 0.2) + (targetY * 0.1);
             }
 
-            // Smooth Camera Zoom
-            camera.position.z = 26 - (scrollPercent * 8);
+            // Smooth Camera Depth Move on Scroll
+            camera.position.z = 30 - (scrollPercent * 6);
 
             renderer.render(scene, camera);
         };
@@ -279,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 4. SCROLL REVEAL & 3D CARD PERSPECTIVE TILT
+    // 4. SCROLL REVEAL & GLASS CARDS ANIMATION
     // ==========================================
     const revealElements = document.querySelectorAll('.scroll-reveal, .scroll-3d-card');
     const revealObserver = new IntersectionObserver((entries) => {
@@ -441,6 +361,7 @@ Education: B.Tech in Computer Science Engineering @ Ahalia School of Engineering
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 });
+
 
 
 
