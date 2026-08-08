@@ -1,11 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
-    // 1. THREE.JS 3D WEBGL GRAPHICS ENGINE
+    // 1. THREE.JS 3D WEBGL GRAPHICS & SCROLL SYNC
     // ==========================================
     let scene, camera, renderer, icosahedron, particleSystem;
     let mouseX = 0, mouseY = 0;
     let targetX = 0, targetY = 0;
+
+    let lastScrollY = window.scrollY;
+    let scrollVelocity = 0;
+    let scrollPercent = 0;
 
     function initWebGL() {
         const canvas = document.getElementById('webgl-canvas');
@@ -22,33 +26,33 @@ document.addEventListener('DOMContentLoaded', () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // 3D Geometric Central Mesh (Icy Core)
+        // 3D Geometric Mesh Core
         const geometry = new THREE.IcosahedronGeometry(7, 2);
         const material = new THREE.MeshBasicMaterial({
             color: 0x00f2fe,
             wireframe: true,
             transparent: true,
-            opacity: 0.2
+            opacity: 0.22
         });
         icosahedron = new THREE.Mesh(geometry, material);
         scene.add(icosahedron);
 
         // Particle Galaxy System
-        const particleCount = window.innerWidth < 768 ? 250 : 500;
+        const particleCount = window.innerWidth < 768 ? 250 : 550;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
 
         for (let i = 0; i < particleCount * 3; i += 3) {
-            positions[i] = (Math.random() - 0.5) * 80;
-            positions[i + 1] = (Math.random() - 0.5) * 80;
-            positions[i + 2] = (Math.random() - 0.5) * 80;
+            positions[i] = (Math.random() - 0.5) * 90;
+            positions[i + 1] = (Math.random() - 0.5) * 90;
+            positions[i + 2] = (Math.random() - 0.5) * 90;
         }
 
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
         const particleMat = new THREE.PointsMaterial({
             color: 0x8b5cf6,
-            size: 0.25,
+            size: 0.28,
             transparent: true,
             opacity: 0.5,
             blending: THREE.AdditiveBlending
@@ -57,23 +61,34 @@ document.addEventListener('DOMContentLoaded', () => {
         particleSystem = new THREE.Points(particleGeo, particleMat);
         scene.add(particleSystem);
 
-        // Animation Loop
+        // Animation & Scroll Render Loop
         const animate = () => {
             requestAnimationFrame(animate);
 
             targetX += (mouseX - targetX) * 0.05;
             targetY += (mouseY - targetY) * 0.05;
 
+            // 3D Mesh Rotation & Scroll-driven Depth Interpolation
             if (icosahedron) {
                 icosahedron.rotation.x += 0.003;
                 icosahedron.rotation.y += 0.004;
-                icosahedron.rotation.x += (targetY * 0.4 - icosahedron.rotation.x) * 0.05;
-                icosahedron.rotation.y += (targetX * 0.4 - icosahedron.rotation.y) * 0.05;
+
+                // Sync 3D mesh angle & camera depth directly to scroll percentage!
+                icosahedron.rotation.z = scrollPercent * Math.PI * 1.5;
+                icosahedron.rotation.x = targetY * 0.4 + (scrollPercent * Math.PI);
+                icosahedron.rotation.y = targetX * 0.4 + (scrollPercent * Math.PI * 2);
             }
 
             if (particleSystem) {
-                particleSystem.rotation.y -= 0.001;
+                particleSystem.rotation.y = -scrollPercent * Math.PI * 0.8;
+                particleSystem.rotation.z += scrollVelocity * 0.0005;
             }
+
+            // Scroll Zoom Camera Depth effect (Igloo style 3D camera move)
+            camera.position.z = 24 - (scrollPercent * 10);
+
+            // Decay scroll velocity smoothly
+            scrollVelocity *= 0.92;
 
             renderer.render(scene, camera);
         };
@@ -91,7 +106,73 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebGL();
 
     // ==========================================
-    // 2. MAGNETIC CURSOR & SPOTLIGHT SHADER
+    // 2. DYNAMIC SCROLL ENGINE & TRACKER
+    // ==========================================
+    const progressBar = document.getElementById('scroll-progress');
+    const trackerItems = document.querySelectorAll('.tracker-item');
+    const sections = document.querySelectorAll('.scroll-section, section');
+
+    window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        
+        scrollPercent = Math.max(0, Math.min(1, currentScrollY / maxScroll));
+        scrollVelocity = currentScrollY - lastScrollY;
+        lastScrollY = currentScrollY;
+
+        // Top Scroll Progress Line
+        if (progressBar) {
+            progressBar.style.width = `${scrollPercent * 100}%`;
+        }
+
+        // Parallax Floating Elements Shift
+        document.querySelectorAll('[data-parallax]').forEach(el => {
+            const speed = parseFloat(el.getAttribute('data-parallax'));
+            el.style.transform = `translateY(${currentScrollY * speed}px)`;
+        });
+
+        // Navbar scrolled state
+        const navbar = document.getElementById('navbar');
+        if (navbar) {
+            if (currentScrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }
+    });
+
+    // Kinetic Tracker Section Highlight
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.getAttribute('id');
+                trackerItems.forEach(item => {
+                    if (item.getAttribute('data-section') === id) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+        });
+    }, { threshold: 0.3 });
+
+    sections.forEach(sec => sectionObserver.observe(sec));
+
+    // Tracker Click Handler
+    trackerItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const targetId = item.getAttribute('data-section');
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+
+    // ==========================================
+    // 3. MAGNETIC CURSOR & SPOTLIGHT SHADER
     // ==========================================
     const cursor = document.getElementById('custom-cursor');
     const cursorBlur = document.getElementById('cursor-blur');
@@ -129,21 +210,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 3. NAVBAR SCROLL EFFECT
+    // 4. SCROLL REVEAL & 3D CARD PERSPECTIVE TILT
     // ==========================================
-    const navbar = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-        if (navbar) {
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
+    const revealElements = document.querySelectorAll('.scroll-reveal, .scroll-3d-card');
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
             }
-        }
-    });
+        });
+    }, { threshold: 0.15 });
+
+    revealElements.forEach(el => revealObserver.observe(el));
 
     // ==========================================
-    // 4. TYPEWRITER EFFECT (MIDHUN'S EXACT ROLES)
+    // 5. TYPEWRITER EFFECT (MIDHUN'S EXACT ROLES)
     // ==========================================
     const roles = [
         "Engineering Student @ ASET",
@@ -191,49 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 5. INTERSECTION OBSERVER FOR FADE-IN
-    // ==========================================
-    const faders = document.querySelectorAll('.fade-in');
-    const appearOptions = {
-        threshold: 0.15,
-        rootMargin: "0px 0px -50px 0px"
-    };
-
-    const appearOnScroll = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, appearOptions);
-
-    faders.forEach(fader => appearOnScroll.observe(fader));
-
-    // ==========================================
-    // 6. SMOOTH SCROLLING NAV LINKS
-    // ==========================================
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
-
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-                const navHeight = navbar ? navbar.offsetHeight : 0;
-                const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - navHeight;
-
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
-
-    // ==========================================
-    // 7. INTERACTIVE CLI TERMINAL (AUTHENTIC DATA)
+    // 6. INTERACTIVE CLI TERMINAL (AUTHENTIC DATA)
     // ==========================================
     const terminalDrawer = document.getElementById('terminal-drawer');
     const terminalToggle = document.getElementById('terminal-toggle');
@@ -333,5 +372,6 @@ Education: B.Tech in Computer Science Engineering @ Ahalia School of Engineering
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 });
+
 
 
