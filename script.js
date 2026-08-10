@@ -311,6 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     requestAnimationFrame(updateFrameLoop);
 
+    // Register ScrollTrigger plugin
+    gsap.registerPlugin(ScrollTrigger);
+
     // Initialize Lenis Smooth Scroll
     const lenis = new Lenis({
         duration: 1.0,
@@ -465,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Section Entrances
         sections.forEach(sec => {
+            if (sec.id === 'hero') return; // Skip hero section since it reveals on page load
             const heading = sec.querySelector('.section-title');
             const reveals = sec.querySelectorAll('.scroll-reveal:not(.section-title), .scroll-3d-card');
             const staggers = sec.querySelectorAll('.stagger-item, .stagger-chip, .chip');
