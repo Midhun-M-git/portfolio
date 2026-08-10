@@ -311,38 +311,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     requestAnimationFrame(updateFrameLoop);
 
-    // Window Scroll Handler for Frame Scrubbing
+    // Initialize Lenis Smooth Scroll
+    const lenis = new Lenis({
+        duration: 1.0,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        direction: 'vertical',
+        gestureDirection: 'vertical',
+        smooth: true,
+        mouseMultiplier: 0.85, // weighted feel
+        smoothTouch: false,
+    });
+
+    lenis.on('scroll', ScrollTrigger.update);
+
+    gsap.ticker.add((time) => {
+        lenis.raf(time * 1000);
+    });
+    gsap.ticker.lagSmoothing(0);
+
     const progressBar = document.getElementById('scroll-progress');
     const trackerItems = document.querySelectorAll('.tracker-item');
     const sections = document.querySelectorAll('.scroll-section, section');
 
-    window.addEventListener('scroll', () => {
-        const currentScrollY = window.scrollY;
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    // Lenis Scroll Event Listener
+    lenis.on('scroll', (e) => {
+        const currentScrollY = e.scroll;
+        const maxScroll = e.limit;
         
         scrollPercent = Math.max(0, Math.min(1, currentScrollY / maxScroll));
-        scrollVelocity = currentScrollY - lastScrollY;
+        scrollVelocity = e.velocity;
         lastScrollY = currentScrollY;
 
         // Map scroll percentage directly to frame sequence index (0 to 101)
         targetFrame = scrollPercent * (totalFrames - 1);
 
-        isUserScrolling = true;
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-            isUserScrolling = false;
-        }, 150);
+        isUserScrolling = Math.abs(e.velocity) > 0.1;
 
-        // Top Scroll Progress Line
+        // Top Scroll Progress Line (1-2px)
         if (progressBar) {
             progressBar.style.width = `${scrollPercent * 100}%`;
         }
-
-        // Parallax Floating Elements Shift
-        document.querySelectorAll('[data-parallax]').forEach(el => {
-            const speed = parseFloat(el.getAttribute('data-parallax'));
-            el.style.transform = `translateY(${currentScrollY * speed}px)`;
-        });
 
         // Navbar scrolled state
         const navbar = document.getElementById('navbar');
@@ -355,40 +363,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Kinetic Tracker Section Highlight
-    const sectionObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const id = entry.target.getAttribute('id');
-                trackerItems.forEach(item => {
-                    if (item.getAttribute('data-section') === id) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
+    // Kinetic Tracker Section Highlight with ScrollTrigger
+    sections.forEach(sec => {
+        const id = sec.getAttribute('id');
+        if (!id) return;
+        ScrollTrigger.create({
+            trigger: sec,
+            start: 'top 50%',
+            end: 'bottom 50%',
+            onToggle: self => {
+                if (self.isActive) {
+                    trackerItems.forEach(item => {
+                        if (item.getAttribute('data-section') === id) {
+                            item.classList.add('active');
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                }
             }
         });
-    }, { threshold: 0.3 });
+    });
 
-    sections.forEach(sec => sectionObserver.observe(sec));
-
-    // Tracker Click Handler
+    // Tracker Click Handler using Lenis scrollTo
     trackerItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-section');
             const targetEl = document.getElementById(targetId);
             if (targetEl) {
-                targetEl.scrollIntoView({ behavior: 'smooth' });
+                lenis.scrollTo(targetEl, { duration: 1.2 });
             }
         });
     });
 
-    // ==========================================
-    // 3. MAGNETIC CURSOR & SPOTLIGHT SHADER
-    // ==========================================
+    // Smooth scroll for nav anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            const targetEl = document.querySelector(targetId);
+            if (targetEl) {
+                lenis.scrollTo(targetEl, { duration: 1.2 });
+            }
+        });
+    });
+
+    // Check for prefers-reduced-motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Custom Magnetic Cursor (skip custom cursor effects if user prefers or as clean layout refinement)
+    // We keep the spotlight shader but remove mouse-tracking circle element to keep the tone recruiter-focused
     const cursor = document.getElementById('custom-cursor');
     const cursorBlur = document.getElementById('cursor-blur');
+    if (cursor) cursor.style.display = 'none';
+    if (cursorBlur) cursorBlur.style.display = 'none';
 
     document.addEventListener('mousemove', (e) => {
         const x = e.clientX;
@@ -397,17 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mouseX = (x / window.innerWidth - 0.5);
         mouseY = (y / window.innerHeight - 0.5);
 
-        if (cursor) {
-            cursor.style.left = `${x}px`;
-            cursor.style.top = `${y}px`;
-        }
-
-        if (cursorBlur) {
-            cursorBlur.style.left = `${x}px`;
-            cursorBlur.style.top = `${y}px`;
-        }
-
-        // Spotlight Shader tracking over glass cards
+        // Spotlight Shader tracking over glass cards remains for subtle premium micro-interaction
         document.querySelectorAll('.glass-card').forEach(card => {
             const rect = card.getBoundingClientRect();
             const cardX = x - rect.left;
@@ -417,57 +436,110 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.querySelectorAll('.magnetic-target, a, button').forEach(elem => {
-        elem.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
-        elem.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
-    });
-
     // ==========================================
-    // 4. MAGICAL SCROLL REVEAL & SECTION TRANSITIONS
+    // 4. MAGICAL GSAP SCROLL REVEALS & MOTION
     // ==========================================
+    if (!prefersReducedMotion) {
+        // Hero Reveal
+        gsap.fromTo('#hero .name', 
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', delay: 0.2 }
+        );
+        gsap.fromTo('#hero .greeting, #hero .headline, #hero .hero-desc, #hero .hero-cta',
+            { opacity: 0, y: 12 },
+            { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.08, delay: 0.4 }
+        );
 
-    // Reveal scroll-reveal elements
-    const revealElements = document.querySelectorAll('.scroll-reveal, .scroll-3d-card');
-    const revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
+        // Light Parallax on Hero scroll-away
+        gsap.to('#hero .hero-content', {
+            scrollTrigger: {
+                trigger: '#hero',
+                start: 'top top',
+                end: 'bottom top',
+                scrub: true
+            },
+            y: -30,
+            opacity: 0,
+            ease: 'none'
+        });
+
+        // Section Entrances
+        sections.forEach(sec => {
+            const heading = sec.querySelector('.section-title');
+            const reveals = sec.querySelectorAll('.scroll-reveal:not(.section-title), .scroll-3d-card');
+            const staggers = sec.querySelectorAll('.stagger-item, .stagger-chip, .chip');
+
+            const tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: sec,
+                    start: 'top 78%', // triggered around 75-78% viewport
+                    toggleActions: 'play none none none',
+                    once: true
+                }
+            });
+
+            if (heading) {
+                tl.fromTo(heading, 
+                    { opacity: 0, y: 20 },
+                    { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+                );
+            }
+
+            if (reveals.length > 0) {
+                tl.fromTo(reveals,
+                    { opacity: 0, y: 20 },
+                    { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out', stagger: 0.06 },
+                    heading ? '-=0.45' : '0'
+                );
+            }
+
+            if (staggers.length > 0) {
+                tl.fromTo(staggers,
+                    { opacity: 0, y: 16 },
+                    { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out', stagger: 0.05 },
+                    reveals.length > 0 ? '-=0.4' : (heading ? '-=0.3' : '0')
+                );
             }
         });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-    revealElements.forEach(el => revealObserver.observe(el));
-
-    // Stagger list items (e.g. interest-list, skill items)
-    const staggerItems = document.querySelectorAll('.stagger-item');
-    const staggerObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
+        // Experience Timeline Connector Line Drawing
+        gsap.fromTo('.timeline-line', 
+            { height: '0%' },
+            { 
+                height: '100%',
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: '.timeline',
+                    start: 'top 65%',
+                    end: 'bottom 65%',
+                    scrub: true
+                }
             }
+        );
+
+        // Section Divider Glyphs drift
+        gsap.to('.section-divider span', {
+            y: 'random(-4, 4)',
+            x: 'random(-3, 3)',
+            rotation: 'random(-6, 6)',
+            duration: 'random(4, 6)',
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+            stagger: 0.2
         });
-    }, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
+    } else {
+        // Fallback for prefers-reduced-motion: instantly show all elements
+        gsap.set('.scroll-reveal, .scroll-3d-card, .stagger-item, .stagger-chip, .chip, .section-title, #hero .name, #hero .greeting, #hero .headline, #hero .hero-desc, #hero .hero-cta', { opacity: 1, y: 0 });
+        gsap.set('.timeline-line', { height: '100%' });
+    }
 
-    staggerItems.forEach(el => staggerObserver.observe(el));
-
-    // Section dividers (frost lines between sections)
-    const dividerObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
-            }
-        });
-    }, { threshold: 0.3 });
-
-    document.querySelectorAll('.section-divider').forEach(el => dividerObserver.observe(el));
-
-    // Frost shimmer sweep — fires once each time a section enters viewport
+    // Frost shimmer sweep — triggers on section entry
     const sectionSweepObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const section = entry.target;
                 section.classList.remove('frost-sweep');
-                // Tiny reflow delay to re-trigger the CSS animation
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => section.classList.add('frost-sweep'));
                 });
@@ -475,55 +547,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, { threshold: 0.18 });
 
-    document.querySelectorAll('.scroll-section, section').forEach(sec => sectionSweepObserver.observe(sec));
+    sections.forEach(sec => sectionSweepObserver.observe(sec));
 
     // ==========================================
-    // 5. TYPEWRITER EFFECT (MIDHUN'S EXACT ROLES)
+    // 5. TYPEWRITER EFFECT (REFINED ROLES)
     // ==========================================
     const roles = [
-        "Engineering Student @ ASET",
-        "General Secretary, College Union",
-        "Technical Lead at IEDC",
-        "Founder of NovusTech",
-        "Cybersecurity Enthusiast"
+        "Software Engineer",
+        "Tech Lead",
+        "Security Researcher"
     ];
-
-    let roleIndex = 0;
-    let charIndex = 0;
-    let isDeleting = false;
-    let typingSpeed = 100;
 
     const typeWriterElement = document.getElementById('typewriter');
 
-    function type() {
+    function initTypewriter() {
         if (!typeWriterElement) return;
-        const currentRole = roles[roleIndex];
 
-        if (isDeleting) {
-            typeWriterElement.textContent = currentRole.substring(0, charIndex - 1);
-            charIndex--;
-            typingSpeed = 50;
-        } else {
-            typeWriterElement.textContent = currentRole.substring(0, charIndex + 1);
-            charIndex++;
-            typingSpeed = 100;
+        if (prefersReducedMotion) {
+            typeWriterElement.textContent = roles[0];
+            return;
         }
 
-        if (!isDeleting && charIndex === currentRole.length) {
-            isDeleting = true;
-            typingSpeed = 2000;
-        } else if (isDeleting && charIndex === 0) {
-            isDeleting = false;
-            roleIndex = (roleIndex + 1) % roles.length;
-            typingSpeed = 500;
+        let roleIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typingSpeed = 80;
+
+        function type() {
+            const currentRole = roles[roleIndex];
+
+            if (isDeleting) {
+                typeWriterElement.textContent = currentRole.substring(0, charIndex - 1);
+                charIndex--;
+                typingSpeed = 40;
+            } else {
+                typeWriterElement.textContent = currentRole.substring(0, charIndex + 1);
+                charIndex++;
+                typingSpeed = 80;
+            }
+
+            if (!isDeleting && charIndex === currentRole.length) {
+                isDeleting = true;
+                typingSpeed = 1600; // Natural pause
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                roleIndex = (roleIndex + 1) % roles.length;
+                typingSpeed = 300;
+            }
+
+            setTimeout(type, typingSpeed);
         }
 
-        setTimeout(type, typingSpeed);
-    }
-
-    if (typeWriterElement) {
         setTimeout(type, 1000);
     }
+
+    initTypewriter();
 
     // ==========================================
     // 6. INTERACTIVE CLI TERMINAL (ROOT SHELL)
