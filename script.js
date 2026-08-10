@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let snowParticles, frostCrystal1, frostCrystal2, sparkleSystem;
     let mouseX = 0, mouseY = 0;
     let targetX = 0, targetY = 0;
+    let mouseHasEntered = false;
 
     let lastScrollY = window.scrollY;
     let scrollVelocity = 0;
@@ -176,15 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Micro Y-turbulence (buoyancy/air pocket effect)
                     posArr[idx + 1] += vel.turbY * Math.cos(t * 2.4 + vel.offset);
 
-                    // Mouse / Touch Repulsion — wider radius, stronger push
-                    const dx = posArr[idx]     - mouseWorldX;
-                    const dy = posArr[idx + 1] - mouseWorldY;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    // Mouse / Touch Repulsion — only when mouse is on screen
+                    if (mouseHasEntered) {
+                        const dx = posArr[idx]     - mouseWorldX;
+                        const dy = posArr[idx + 1] - mouseWorldY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    if (dist < 26) {
-                        const force = (26 - dist) / 26;
-                        posArr[idx]     += (dx / (dist || 1)) * force * 1.4;
-                        posArr[idx + 1] += (dy / (dist || 1)) * force * 1.2;
+                        if (dist < 26) {
+                            const force = (26 - dist) / 26;
+                            posArr[idx]     += (dx / (dist || 1)) * force * 1.4;
+                            posArr[idx + 1] += (dy / (dist || 1)) * force * 1.2;
+                        }
                     }
 
                     // Reset to Sky when falling past bottom
@@ -260,7 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        window.addEventListener('mousemove', (e) => triggerSparkles(e.clientX, e.clientY, 2));
+        window.addEventListener('mousemove', (e) => {
+            mouseHasEntered = true;
+            triggerSparkles(e.clientX, e.clientY, 2);
+        });
+        window.addEventListener('mouseleave', () => {
+            mouseHasEntered = false; // hide repulsion when cursor leaves window
+        });
         window.addEventListener('touchmove', (e) => {
             if (e.touches[0]) triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 3);
         });
