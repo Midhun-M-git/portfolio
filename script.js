@@ -314,46 +314,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // Register ScrollTrigger plugin
     gsap.registerPlugin(ScrollTrigger);
 
-    // Initialize Lenis Smooth Scroll
-    const lenis = new Lenis({
-        duration: 1.0,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        direction: 'vertical',
-        gestureDirection: 'vertical',
-        smooth: true,
-        mouseMultiplier: 0.85, // weighted feel
-        smoothTouch: false,
-    });
-
-    lenis.on('scroll', ScrollTrigger.update);
-
-    gsap.ticker.add((time) => {
-        lenis.raf(time * 1000);
-    });
-    gsap.ticker.lagSmoothing(0);
-
     const progressBar = document.getElementById('scroll-progress');
     const trackerItems = document.querySelectorAll('.tracker-item');
     const sections = document.querySelectorAll('.scroll-section, section');
 
-    // Lenis Scroll Event Listener
-    lenis.on('scroll', (e) => {
-        const currentScrollY = e.scroll;
-        const maxScroll = e.limit;
+    // Native Scroll Event Listener
+    window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         
         scrollPercent = Math.max(0, Math.min(1, currentScrollY / maxScroll));
-        scrollVelocity = e.velocity;
+        scrollVelocity = currentScrollY - lastScrollY;
         lastScrollY = currentScrollY;
 
         // Map scroll percentage directly to frame sequence index (0 to 101)
         targetFrame = scrollPercent * (totalFrames - 1);
 
-        isUserScrolling = Math.abs(e.velocity) > 0.1;
+        isUserScrolling = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            isUserScrolling = false;
+        }, 150);
 
         // Top Scroll Progress Line (1-2px)
         if (progressBar) {
             progressBar.style.width = `${scrollPercent * 100}%`;
         }
+
+        // Parallax Floating Elements Shift
+        document.querySelectorAll('[data-parallax]').forEach(el => {
+            const speed = parseFloat(el.getAttribute('data-parallax'));
+            el.style.transform = `translateY(${currentScrollY * speed}px)`;
+        });
 
         // Navbar scrolled state
         const navbar = document.getElementById('navbar');
@@ -388,26 +380,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Tracker Click Handler using Lenis scrollTo
+    // Tracker Click Handler
     trackerItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-section');
             const targetEl = document.getElementById(targetId);
             if (targetEl) {
-                lenis.scrollTo(targetEl, { duration: 1.2 });
-            }
-        });
-    });
-
-    // Smooth scroll for nav anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
-            const targetEl = document.querySelector(targetId);
-            if (targetEl) {
-                lenis.scrollTo(targetEl, { duration: 1.2 });
+                targetEl.scrollIntoView({ behavior: 'smooth' });
             }
         });
     });
