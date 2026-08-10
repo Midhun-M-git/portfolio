@@ -54,6 +54,27 @@ document.addEventListener('DOMContentLoaded', () => {
         emeraldLight.position.set(-15, 15, 10);
         scene.add(emeraldLight);
 
+        // --- CIRCULAR SNOWFLAKE SPRITE TEXTURE ---
+        // Draw a soft radial gradient circle on a canvas and use it as texture
+        // so every particle renders as a smooth sphere/circle, not a square.
+        function makeCircleTexture(size = 64) {
+            const canvas = document.createElement('canvas');
+            canvas.width  = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const center = size / 2;
+            const gradient = ctx.createRadialGradient(center, center, 0, center, center, center);
+            gradient.addColorStop(0,    'rgba(255,255,255,1.0)');
+            gradient.addColorStop(0.35, 'rgba(255,255,255,0.8)');
+            gradient.addColorStop(0.7,  'rgba(200,240,255,0.3)');
+            gradient.addColorStop(1.0,  'rgba(0,0,0,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            const tex = new THREE.CanvasTexture(canvas);
+            return tex;
+        }
+        const snowSpriteTex = makeCircleTexture(64);
+
         // --- ENDLESS MAGICAL SNOWFALL PARTICLES ---
         const snowGeo = new THREE.BufferGeometry();
         const colors = new Float32Array(flakeCount * 3);
@@ -98,9 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
         snowGeo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
 
         snowParticles = new THREE.Points(snowGeo, new THREE.PointsMaterial({
-            size: 0.55, vertexColors: true, transparent: true,
-            opacity: 0.92, blending: THREE.AdditiveBlending,
-            sizeAttenuation: true  // particles farther away appear smaller
+            size: 0.65,
+            map: snowSpriteTex,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.90,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,       // prevents z-sorting artifacts
+            sizeAttenuation: true
         }));
         scene.add(snowParticles);
 
