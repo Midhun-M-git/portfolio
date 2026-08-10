@@ -183,10 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const dy = posArr[idx + 1] - mouseWorldY;
                         const dist = Math.sqrt(dx * dx + dy * dy);
 
-                        if (dist < 26) {
-                            const force = (26 - dist) / 26;
-                            posArr[idx]     += (dx / (dist || 1)) * force * 1.4;
-                            posArr[idx + 1] += (dy / (dist || 1)) * force * 1.2;
+                        if (dist < 9) {
+                            const force = (9 - dist) / 9;
+                            posArr[idx]     += (dx / (dist || 1)) * force * 0.9;
+                            posArr[idx + 1] += (dy / (dist || 1)) * force * 0.7;
                         }
                     }
 
