@@ -12,9 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrollVelocity = 0;
     let scrollPercent = 0;
 
-    const flakeCount = window.innerWidth < 768 ? 1200 : 2500;
+    const flakeCount = window.innerWidth < 768 ? 2200 : 5000;
     const flakePositions = new Float32Array(flakeCount * 3);
+    const flakeSizes    = new Float32Array(flakeCount);
     const flakeVelocities = [];
+
+    // Wind gust state
+    let windX = 0, windTarget = 0;
+    let windTimer = 0;
 
     // Interactive Sparkle Particles setup
     const maxSparkles = 350;
@@ -55,22 +60,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const colorPureWhite = new THREE.Color(0xffffff);
         const colorIceCyan   = new THREE.Color(0xe0f7fa);
         const colorSoftBlue  = new THREE.Color(0xbae6fd);
+        const colorFrostGlow = new THREE.Color(0xa5f3fc); // extra ice blue
 
         for (let i = 0; i < flakeCount * 3; i += 3) {
-            flakePositions[i]     = (Math.random() - 0.5) * 140;
-            flakePositions[i + 1] = (Math.random() - 0.5) * 120;
-            flakePositions[i + 2] = (Math.random() - 0.5) * 90;
+            const fi = i / 3;
+            // Spread flakes across a wide deep field
+            flakePositions[i]     = (Math.random() - 0.5) * 160;
+            flakePositions[i + 1] = (Math.random() - 0.5) * 140;
+            flakePositions[i + 2] = (Math.random() - 0.5) * 120;
+
+            // Z-depth-based sizing: flakes closer to camera are bigger
+            const depth = (flakePositions[i + 2] + 60) / 120; // 0 far, 1 close
+            flakeSizes[fi] = 0.18 + depth * 0.65; // 0.18 to 0.83
 
             flakeVelocities.push({
-                speedY:    0.06 + Math.random() * 0.16,
-                swaySpeed: 0.8  + Math.random() * 1.5,
-                swayAmp:   0.05 + Math.random() * 0.12,
+                // Heavier near-camera flakes fall faster (depth-layered)
+                speedY:    0.04 + depth * 0.22 + Math.random() * 0.14,
+                swaySpeed: 0.5  + Math.random() * 2.0,
+                swayAmp:   0.04 + Math.random() * 0.20, // broader sway
                 offset:    Math.random() * Math.PI * 2,
+                // Individual turbulence factors
+                turbX:     (Math.random() - 0.5) * 0.012,
+                turbY:     (Math.random() - 0.5) * 0.006,
                 vx: 0, vy: 0
             });
 
             const r = Math.random();
-            const col = r > 0.75 ? colorSoftBlue : r > 0.4 ? colorIceCyan : colorPureWhite;
+            const col = r > 0.8 ? colorSoftBlue
+                      : r > 0.55 ? colorFrostGlow
+                      : r > 0.3  ? colorIceCyan
+                      : colorPureWhite;
             colors[i] = col.r; colors[i+1] = col.g; colors[i+2] = col.b;
         }
 
@@ -78,8 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
         snowGeo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
 
         snowParticles = new THREE.Points(snowGeo, new THREE.PointsMaterial({
-            size: 0.42, vertexColors: true, transparent: true,
-            opacity: 0.88, blending: THREE.AdditiveBlending
+            size: 0.55, vertexColors: true, transparent: true,
+            opacity: 0.92, blending: THREE.AdditiveBlending,
+            sizeAttenuation: true  // particles farther away appear smaller
         }));
         scene.add(snowParticles);
 
@@ -132,35 +152,46 @@ document.addEventListener('DOMContentLoaded', () => {
             const mouseWorldX = targetX * 45;
             const mouseWorldY = -targetY * 35;
 
-            // Endless Snowfall Physics with Mouse Magnetic Repulsion
+            // Endless Snowfall Physics with enhanced wind, turbulence & mouse repulsion
             if (snowParticles) {
                 const posArr = snowParticles.geometry.attributes.position.array;
+
+                // Wind gust system — slowly shifts direction every 4-8 seconds
+                windTimer += 0.003;
+                windTarget = Math.sin(windTimer * 0.7) * 0.06 + Math.cos(windTimer * 0.4) * 0.03;
+                windX += (windTarget - windX) * 0.008; // smooth inertia
 
                 for (let i = 0; i < flakeCount; i++) {
                     const idx = i * 3;
                     const vel = flakeVelocities[i];
 
-                    // Fall Y
-                    posArr[idx + 1] -= vel.speedY + (scrollVelocity * 0.005);
+                    // Fall Y — scroll-speed boosts fall in storm effect
+                    posArr[idx + 1] -= vel.speedY + (scrollVelocity * 0.008);
 
-                    // Sway X with Arctic Wind
-                    posArr[idx] += Math.sin(t * vel.swaySpeed + vel.offset) * vel.swayAmp;
+                    // Sway X: natural arc + global wind gust + per-particle turbulence
+                    posArr[idx] += Math.sin(t * vel.swaySpeed + vel.offset) * vel.swayAmp
+                                 + windX
+                                 + vel.turbX * Math.sin(t * 3.1 + vel.offset);
 
-                    // Mouse / Touch Repulsion Physics (Push snow away from cursor!)
-                    const dx = posArr[idx] - mouseWorldX;
+                    // Micro Y-turbulence (buoyancy/air pocket effect)
+                    posArr[idx + 1] += vel.turbY * Math.cos(t * 2.4 + vel.offset);
+
+                    // Mouse / Touch Repulsion — wider radius, stronger push
+                    const dx = posArr[idx]     - mouseWorldX;
                     const dy = posArr[idx + 1] - mouseWorldY;
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    if (dist < 16) {
-                        const force = (16 - dist) / 16;
-                        posArr[idx] += (dx / (dist || 1)) * force * 0.8;
-                        posArr[idx + 1] += (dy / (dist || 1)) * force * 0.8;
+                    if (dist < 26) {
+                        const force = (26 - dist) / 26;
+                        posArr[idx]     += (dx / (dist || 1)) * force * 1.4;
+                        posArr[idx + 1] += (dy / (dist || 1)) * force * 1.2;
                     }
 
                     // Reset to Sky when falling past bottom
-                    if (posArr[idx + 1] < -60) {
-                        posArr[idx + 1] = 60;
-                        posArr[idx] = (Math.random() - 0.5) * 140;
+                    if (posArr[idx + 1] < -70) {
+                        posArr[idx + 1] = 70;
+                        posArr[idx]     = (Math.random() - 0.5) * 160;
+                        posArr[idx + 2] = (Math.random() - 0.5) * 120;
                     }
                 }
 
