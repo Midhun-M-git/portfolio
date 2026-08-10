@@ -43,16 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
         // --- ARCTIC LIGHTING ---
-        const ambientLight = new THREE.AmbientLight(0x0f172a, 2.5);
+        const ambientLight = new THREE.AmbientLight(0x0f172a, 5.0);
         scene.add(ambientLight);
 
-        const cyanLight = new THREE.PointLight(0x00f2fe, 4, 70);
+        const cyanLight = new THREE.PointLight(0x00f2fe, 8, 90);
         cyanLight.position.set(15, 20, 10);
         scene.add(cyanLight);
 
-        const emeraldLight = new THREE.PointLight(0x00ffcc, 3.5, 70);
+        const emeraldLight = new THREE.PointLight(0x00ffcc, 7, 90);
         emeraldLight.position.set(-15, 15, 10);
         scene.add(emeraldLight);
+
+        // Extra violet accent light for depth
+        const violetLight = new THREE.PointLight(0x7c3aed, 5, 80);
+        violetLight.position.set(0, -20, 5);
+        scene.add(violetLight);
 
         // --- CIRCULAR SNOWFLAKE SPRITE TEXTURE ---
         // Draw a soft radial gradient circle on a canvas and use it as texture
