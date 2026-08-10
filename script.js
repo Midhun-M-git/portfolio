@@ -612,6 +612,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (terminalDrawer && terminalInput) {
+        terminalDrawer.addEventListener('click', () => {
+            terminalInput.focus();
+        });
+    }
+
     const commands = {
         help: `Available Commands:
  - <span class="cmd-highlight">whoami</span>     : Summary profile of Midhun M
