@@ -177,8 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
 
-            targetX += (mouseX - targetX) * 0.05;
-            targetY += (mouseY - targetY) * 0.05;
+            targetX += (mouseX - targetX) * 0.12;
+            targetY += (mouseY - targetY) * 0.12;
 
             // Mouse World coordinates for 3D Snow Repulsion
             const mouseWorldX = targetX * 45;
@@ -212,14 +212,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (mouseHasEntered) {
                         const dx = posArr[idx]     - mouseWorldX;
                         const dy = posArr[idx + 1] - mouseWorldY;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const distSq = dx * dx + dy * dy;
+                        const repelRadius = 18;
 
-                        if (dist < 9) {
-                            const force = (9 - dist) / 9;
-                            posArr[idx]     += (dx / (dist || 1)) * force * 0.9;
-                            posArr[idx + 1] += (dy / (dist || 1)) * force * 0.7;
+                        if (distSq < repelRadius * repelRadius) {
+                            const dist = Math.sqrt(distSq) || 0.001;
+                            const force = (repelRadius - dist) / repelRadius;
+                            // Apply strong impulse + store velocity in flake
+                            const impulseX = (dx / dist) * force * 2.5;
+                            const impulseY = (dy / dist) * force * 2.0;
+                            vel.vx += impulseX;
+                            vel.vy += impulseY;
                         }
                     }
+
+                    // Apply & dampen velocity (momentum carry after cursor passes)
+                    posArr[idx]     += vel.vx;
+                    posArr[idx + 1] += vel.vy;
+                    vel.vx *= 0.88;  // friction — gradually settle
+                    vel.vy *= 0.88;
 
                     // Reset to Sky when falling past bottom
                     if (posArr[idx + 1] < -70) {
@@ -296,15 +307,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.addEventListener('mousemove', (e) => {
             mouseHasEntered = true;
-            triggerSparkles(e.clientX, e.clientY, 2);
+            triggerSparkles(e.clientX, e.clientY, 4);
         });
         window.addEventListener('mouseleave', () => {
-            mouseHasEntered = false; // hide repulsion when cursor leaves window
+            mouseHasEntered = false;
         });
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches[0]) {
+                mouseHasEntered = true;
+                mouseX = (e.touches[0].clientX / window.innerWidth  - 0.5) * 2;
+                mouseY = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
+                triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 8);
+            }
+        }, { passive: true });
         window.addEventListener('touchmove', (e) => {
-            if (e.touches[0]) triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 3);
+            if (e.touches[0]) {
+                mouseHasEntered = true;
+                mouseX = (e.touches[0].clientX / window.innerWidth  - 0.5) * 2;
+                mouseY = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
+                triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 5);
+            }
+        }, { passive: true });
+        window.addEventListener('touchend', () => {
+            // keep repulsion position but let flakes settle naturally
         });
-        window.addEventListener('click', (e) => triggerSparkles(e.clientX, e.clientY, 15));
+        window.addEventListener('click', (e) => triggerSparkles(e.clientX, e.clientY, 28));
 
         // Window Resize
         window.addEventListener('resize', () => {
@@ -478,6 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         mouseX = (x / window.innerWidth - 0.5);
         mouseY = (y / window.innerHeight - 0.5);
+        mouseHasEntered = true;
 
         // Spotlight Shader tracking over glass cards remains for subtle premium micro-interaction
         document.querySelectorAll('.glass-card').forEach(card => {
@@ -487,6 +515,25 @@ document.addEventListener('DOMContentLoaded', () => {
             card.style.setProperty('--mouse-x', `${cardX}px`);
             card.style.setProperty('--mouse-y', `${cardY}px`);
         });
+    });
+
+    // Touch support for snow repulsion on mobile
+    document.addEventListener('touchstart', (e) => {
+        if (e.touches[0]) {
+            mouseX = (e.touches[0].clientX / window.innerWidth - 0.5);
+            mouseY = (e.touches[0].clientY / window.innerHeight - 0.5);
+            mouseHasEntered = true;
+        }
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+        if (e.touches[0]) {
+            mouseX = (e.touches[0].clientX / window.innerWidth - 0.5);
+            mouseY = (e.touches[0].clientY / window.innerHeight - 0.5);
+            mouseHasEntered = true;
+        }
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+        // keep last position; snow settles naturally via friction
     });
 
     // ==========================================
