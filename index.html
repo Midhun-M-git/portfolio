@@ -89,8 +89,20 @@
                 <i class="fas fa-terminal"></i> <span>CLI Shell</span>
             </button>
             <a href="#contact" class="btn btn-outline magnetic-target">Let's Talk</a>
+            <button class="hamburger" id="hamburger" aria-label="Open menu">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
+
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" id="mobile-nav">
+        <a href="#about" class="mobile-nav-link">About</a>
+        <a href="#experience" class="mobile-nav-link">Experience</a>
+        <a href="#projects" class="mobile-nav-link">Projects</a>
+        <a href="#skills" class="mobile-nav-link">Skills</a>
+        <a href="#contact" class="mobile-nav-link">Let's Talk</a>
+    </div>
 
     <!-- Hero Section -->
     <section id="hero" class="hero scroll-section">
@@ -326,6 +338,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="script.js"></script>
+
+    <!-- Mobile Nav Toggle -->
+    <script>
+        const hamburger = document.getElementById('hamburger');
+        const mobileNav = document.getElementById('mobile-nav');
+        const mobileLinks = mobileNav.querySelectorAll('.mobile-nav-link');
+        function closeMobileNav() {
+            hamburger.classList.remove('open');
+            mobileNav.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        hamburger.addEventListener('click', () => {
+            const isOpen = hamburger.classList.toggle('open');
+            mobileNav.classList.toggle('active', isOpen);
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        });
+        mobileLinks.forEach(link => link.addEventListener('click', closeMobileNav));
+    </script>
 </body>
 </html>
 
