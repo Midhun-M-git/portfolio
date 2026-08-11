@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const dx = posArr[idx]     - mouseWorldX;
                         const dy = posArr[idx + 1] - mouseWorldY;
                         const distSq = dx * dx + dy * dy;
-                        const repelRadius = 18;
+                        const repelRadius = 12;
 
                         if (distSq < repelRadius * repelRadius) {
                             const dist = Math.sqrt(distSq) || 0.001;
