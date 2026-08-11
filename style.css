@@ -58,8 +58,8 @@ body {
     height: 100vh;
     z-index: -2;
     pointer-events: none;
-    opacity: 0.52;
-    filter: invert(1) hue-rotate(185deg) saturate(2.8) brightness(1.7) contrast(1.25) drop-shadow(0 0 35px rgba(0, 242, 254, 0.8));
+    opacity: 0.15;
+    filter: invert(1) hue-rotate(185deg) saturate(2.8) brightness(0.4) contrast(1.25) drop-shadow(0 0 35px rgba(0, 242, 254, 0.3));
     mix-blend-mode: screen;
     transition: opacity 0.3s ease;
     will-change: transform;
@@ -160,7 +160,7 @@ body {
     height: 1100px;
     border-radius: 50%;
     filter: blur(130px);
-    opacity: 0.62;
+    opacity: 0.1;
     z-index: -3;
     pointer-events: none;
     transition: transform 0.2s ease-out;
