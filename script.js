@@ -180,9 +180,10 @@ document.addEventListener('DOMContentLoaded', () => {
             targetX += (mouseX - targetX) * 0.12;
             targetY += (mouseY - targetY) * 0.12;
 
-            // Mouse World coordinates for 3D Snow Repulsion
-            const mouseWorldX = targetX * 45;
-            const mouseWorldY = -targetY * 35;
+            // Mouse/Touch World coordinates for 3D Snow Repulsion
+            // mouseX/Y are in [-0.5, 0.5]; scale to match 3D world space
+            const mouseWorldX = targetX * 50;
+            const mouseWorldY = -targetY * 40;
 
             // Endless Snowfall Physics with enhanced wind, turbulence & mouse repulsion
             if (snowParticles) {
@@ -208,17 +209,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Micro Y-turbulence (buoyancy/air pocket effect)
                     posArr[idx + 1] += vel.turbY * Math.cos(t * 2.4 + vel.offset);
 
-                    // Mouse / Touch Repulsion — only when mouse is on screen
+                    // Mouse / Touch Repulsion — only when pointer is active
                     if (mouseHasEntered) {
                         const dx = posArr[idx]     - mouseWorldX;
                         const dy = posArr[idx + 1] - mouseWorldY;
                         const distSq = dx * dx + dy * dy;
-                        const repelRadius = 12;
+                        const repelRadius = 9.5;
 
                         if (distSq < repelRadius * repelRadius) {
                             const dist = Math.sqrt(distSq) || 0.001;
                             const force = (repelRadius - dist) / repelRadius;
-                            // Apply strong impulse + store velocity in flake
                             const impulseX = (dx / dist) * force * 2.5;
                             const impulseY = (dy / dist) * force * 2.0;
                             vel.vx += impulseX;
@@ -226,10 +226,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    // Apply & dampen velocity (momentum carry after cursor passes)
+                    // Cap velocity to prevent explosive jitter (especially on mobile)
+                    const maxV = 3.0;
+                    if (vel.vx >  maxV) vel.vx =  maxV;
+                    if (vel.vx < -maxV) vel.vx = -maxV;
+                    if (vel.vy >  maxV) vel.vy =  maxV;
+                    if (vel.vy < -maxV) vel.vy = -maxV;
+
+                    // Apply & dampen velocity (momentum carry after pointer moves away)
                     posArr[idx]     += vel.vx;
                     posArr[idx + 1] += vel.vy;
-                    vel.vx *= 0.88;  // friction — gradually settle
+                    vel.vx *= 0.88;
                     vel.vy *= 0.88;
 
                     // Reset to Sky when falling past bottom
@@ -305,32 +312,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Mouse move — sparkles only (coords set by global document listener)
         window.addEventListener('mousemove', (e) => {
-            mouseHasEntered = true;
             triggerSparkles(e.clientX, e.clientY, 4);
         });
         window.addEventListener('mouseleave', () => {
             mouseHasEntered = false;
         });
+
+        // Touch — sparkles only (coords + mouseHasEntered set by global document listener)
         window.addEventListener('touchstart', (e) => {
-            if (e.touches[0]) {
-                mouseHasEntered = true;
-                mouseX = (e.touches[0].clientX / window.innerWidth  - 0.5) * 2;
-                mouseY = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
-                triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 8);
-            }
+            if (e.touches[0]) triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 8);
         }, { passive: true });
         window.addEventListener('touchmove', (e) => {
-            if (e.touches[0]) {
-                mouseHasEntered = true;
-                mouseX = (e.touches[0].clientX / window.innerWidth  - 0.5) * 2;
-                mouseY = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
-                triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 5);
-            }
+            if (e.touches[0]) triggerSparkles(e.touches[0].clientX, e.touches[0].clientY, 5);
         }, { passive: true });
-        window.addEventListener('touchend', () => {
-            // keep repulsion position but let flakes settle naturally
-        });
+
         window.addEventListener('click', (e) => triggerSparkles(e.clientX, e.clientY, 28));
 
         // Window Resize
@@ -499,41 +496,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cursor) cursor.style.display = 'none';
     if (cursorBlur) cursorBlur.style.display = 'none';
 
-    document.addEventListener('mousemove', (e) => {
-        const x = e.clientX;
-        const y = e.clientY;
+    // === Unified Pointer Tracking (Mouse + Touch) for Snow Repulsion ===
+    // All coordinates normalized to [-0.5, 0.5] to match mouseWorldX/Y scaling.
 
-        mouseX = (x / window.innerWidth - 0.5);
-        mouseY = (y / window.innerHeight - 0.5);
+    document.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX / window.innerWidth  - 0.5);
+        mouseY = (e.clientY / window.innerHeight - 0.5);
         mouseHasEntered = true;
 
-        // Spotlight Shader tracking over glass cards remains for subtle premium micro-interaction
+        // Card spotlight shader
         document.querySelectorAll('.glass-card').forEach(card => {
             const rect = card.getBoundingClientRect();
-            const cardX = x - rect.left;
-            const cardY = y - rect.top;
-            card.style.setProperty('--mouse-x', `${cardX}px`);
-            card.style.setProperty('--mouse-y', `${cardY}px`);
+            card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+            card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
         });
     });
 
-    // Touch support for snow repulsion on mobile
     document.addEventListener('touchstart', (e) => {
-        if (e.touches[0]) {
-            mouseX = (e.touches[0].clientX / window.innerWidth - 0.5);
-            mouseY = (e.touches[0].clientY / window.innerHeight - 0.5);
-            mouseHasEntered = true;
-        }
+        if (!e.touches[0]) return;
+        mouseX = (e.touches[0].clientX / window.innerWidth  - 0.5);
+        mouseY = (e.touches[0].clientY / window.innerHeight - 0.5);
+        mouseHasEntered = true;
     }, { passive: true });
+
     document.addEventListener('touchmove', (e) => {
-        if (e.touches[0]) {
-            mouseX = (e.touches[0].clientX / window.innerWidth - 0.5);
-            mouseY = (e.touches[0].clientY / window.innerHeight - 0.5);
-            mouseHasEntered = true;
-        }
+        if (!e.touches[0]) return;
+        mouseX = (e.touches[0].clientX / window.innerWidth  - 0.5);
+        mouseY = (e.touches[0].clientY / window.innerHeight - 0.5);
+        mouseHasEntered = true;
     }, { passive: true });
+
     document.addEventListener('touchend', () => {
-        // keep last position; snow settles naturally via friction
+        // Finger lifted — stop repulsion, let snow settle via friction
+        mouseHasEntered = false;
     });
 
     // ==========================================
